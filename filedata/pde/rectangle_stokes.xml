@@ -46,7 +46,10 @@
     <int label="quRule" desc="Quadrature rule [1:GaussLegendre,2:GaussLobatto]" value="1" />
   </OptionList>
   <boundaryConditions multipatch="0" id="2">
-    <Function type="FunctionExpr" dim="2" index="0">0</Function>
+    <Function type="FunctionExpr" dim="2" index="0" c="2">
+      <c index="0">0</c>
+      <c index="1">0</c>
+    </Function>
     <Function type="FunctionExpr" dim="2" index="1" c="2">
       <c index="0">y*(1-y)</c>
       <c index="1">0</c>
