@@ -56,7 +56,7 @@ int main(int argc, char* argv[]) {
              sample_rate);
 
   // Material constants
-  real_t viscosity{1e-3};
+  real_t viscosity{6000};
   cmd.addReal("v", "visc", "Viscosity", viscosity);
 
   // Mesh options
