@@ -12,6 +12,7 @@
 */
 
 #include <gsMSplines/gsMappedSpline.h>
+#include <gsCore/gsDofMapper.h>
 
 namespace gismo
 {
@@ -198,31 +199,122 @@ std::map<index_t, internal::ElementBlock> gsMappedSpline<d,T>::BezierOperator() 
 {
     GISMO_ENSURE( 2==domainDim(), "Anything other than bivariate splines is not yet supported!");
 
-    // Loop over all the elements of the given multipatch and collect all relevant
+    // Loop over all the elements of the given Mapped Spline and collect all relevant
     // information in ElementBlocks. These will be grouped in a std::map
-    // with respect to the number of active basis functions ( = NN/NCV )
+    // with respect to the number of active basis functions ( = NNj/NCV )
     // of each Bezier element
     std::map<index_t, internal::ElementBlock> ElementBlocks;
 
-    index_t NN; // Number of control points of the Bezier element
-    gsMatrix<index_t> actives; // Active basis functions
+    index_t NNj; // Number of control points of the Bezier elements of block j
+    gsMatrix<index_t> mappedActives, globalActives, localActives; // Active basis functions
 
-    gsMatrix<T> tmp, center_point(2,1);
-    center_point.setConstant( (T)(0.5) );
+    gsMatrix<T> coefVectors, center_point(2,1);
+    // Center point of the Bezier element, all basis functions are active here
+    center_point.setConstant( (T)(0.5) );   
 
-    for (size_t p=0; p<nPatches(); ++p)
+    // The control points of the MappedSpline
+    gsMatrix<T> globalCoefs = this->getMappedCoefs();
+
+    // The transpose of the global Bezier Operator
+    gsWeightMapper<T> mapper = this->getMapper();
+
+    // The Bezier operator, transpose is used because we are constructing 
+    // the basis functions, the mapper.asMatrix() is used for the control points
+    gsMatrix<> bezOperator = mapper.asMatrix().transpose(); 
+
+// TODO: Delete if implementation is OK as is
+/*     gsMultiPatch<> mp = this->exportToPatches();
+    mp.computeTopology();
+    // gsMultiBasis<> mb(mp);
+    gsDofMapper dofMapper = mp.getMapper(1e-4);
+    // dofMapper.finalize(); */
+
+    // The mapped spline's basis functions
+    gsMappedBasis<d,T>  mappedBasis = this->getMappedBasis();
+
+    for (size_t p=0; p<this->nPatches(); ++p)
     {
-        const gsBasis<T> * basis = & this->getBase(p);
-        actives = basis->active( center_point );
-        NN = actives.size();
-        ElementBlocks[NN].numElements += 1;    // Increment the Number of Elements contained in the ElementBlock
-        ElementBlocks[NN].actives.push_back(actives);  // Append the active basis functions ( = the Node IDs ) for this element.
-        ElementBlocks[NN].PR = basis->degree(0);
-        ElementBlocks[NN].PS = basis->degree(1);
-        ElementBlocks[NN].PT = 0; // TODO: if implemented for trivariates fix this
+        // Mapped active basis functions
+        mappedBasis.active_into(p, center_point,mappedActives);
+
+        // Patch-local active basis functions
+        this->getBase(p).active_into(center_point,localActives);
+        // gsInfo << "Local ("<< localActives.rows()<<"):" << localActives.transpose() << "\n";
+
+        globalActives.resizeLike(localActives);
+        globalActives.setZero();
+
+        // OPTION 1: Global, all considered uncoupled
+        // Get the global indices of the active basis functions
+        globalActives = mappedBasis.getGlobalIndex(p,localActives);
+
+        // OPTION 2: Global, considering coupling (i.e. as in the multi patch)
+        // globalActives.resizeLike(localActives);
+        // for (index_t i=0; i<localActives.rows(); ++i)
+        // {
+        //     globalActives(i) = dofMapper.index( localActives(i), p);
+        // }
+
+        //OPTION 3: Global, considering coupling and mapping
+        std::vector<index_t> sourceID, mappedID;
+        // mappedActives.resizeLike(globalActives);
+        // for (index_t i=0; i<localActives.rows(); ++i)
+        // {
+        //     sourceID.clear();
+        //     mappedID.clear();
+        //     sourceID.push_back( globalActives(i) );
+        //     mapper.sourceToTarget(sourceID, mappedID);
+        //     mappedActives(i) = mappedID.front();
+        // }
+
+
+        // gsInfo << "Global("<< globalActives.rows()<<"):" << globalActives.transpose() << "\n";
+        // gsInfo << "Mapped("<< mappedActives.rows()<<"):" << mappedActives.transpose() <<"\n";
+
         
-        this->exportPatch(p, tmp);
-        ElementBlocks[NN].coefVectors.push_back( tmp ); //(!) If it is not  bezier
+        // coefVectors is the patch-local Bezier operator, size (NNj x NCVCj), NCVCj = (PR+1)*(PS+1)*(PT+1)
+        coefVectors.resize(mappedActives.rows(), globalActives.rows());
+        coefVectors.setZero();
+        
+        // std::vector<std::pair<index_t,index_t> > preImage;
+        // Extract the local bezier operator from the global one
+        for (index_t i=0; i<mappedActives.rows(); ++i)
+        {
+            for (index_t j=0; j<globalActives.rows(); ++j)
+            {
+                // if (dofMapper.is_coupled_index(globalActives(j)))
+                // {
+                //     dofMapper.preImage(globalActives(j), preImage);
+                //     // gsInfo << globalActives(j) << " is coupled with ";
+                //     for (size_t k = 0; k != preImage.size(); ++k)
+                //         // gsInfo << preImage.at(k).first << "," << preImage.at(k).second << " ";
+                //         coefVectors(i,j) += bezOperator(mappedActives(i),  mappedBasis.getGlobalIndex(preImage.at(k).first, preImage.at(k).second) );
+                //     // gsInfo << "\n";
+                // }
+                // else
+                // {
+                //     // gsInfo << globalActives(j) << " is free.\n";
+                //     coefVectors(i,j) = bezOperator(mappedActives(i), mappedBasis.getGlobalIndex(p, localActives(j))) ;
+                // }
+
+                // sourceID.clear();
+                // mappedID.clear();
+                // sourceID.push_back( globalActives(j) );
+                // mapper.sourceToTarget(sourceID, mappedID);
+                coefVectors(i,j) = bezOperator(mappedActives(i), globalActives(j)) ;
+            }
+
+        } 
+        // gsInfo << "Coefs size:" << coefVectors.rows() << "x" << coefVectors.cols() << "\n\n";
+
+        // Put everything in the ElementBlock
+        NNj = mappedActives.size();             // Number of control points (nodes) of the Bezier element
+        ElementBlocks[NNj].numElements += 1;    // Increment the Number of Elements contained in the ElementBlock
+        ElementBlocks[NNj].actives.push_back(mappedActives);  // Append the active basis functions ( = the Node IDs ) for this element.
+        ElementBlocks[NNj].PR = this->getBase(p).degree(0);   // Degree of the Bezier element in the r-direction
+        ElementBlocks[NNj].PS = this->getBase(p).degree(1);   // Degree of the Bezier element in the s-direction
+        ElementBlocks[NNj].PT = 0; // TODO: if implemented for trivariates fix this
+        ElementBlocks[NNj].coefVectors.push_back( coefVectors ); //(!) If it is not  bezier
     }
 
     return ElementBlocks;
