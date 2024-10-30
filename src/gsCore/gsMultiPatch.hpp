@@ -1064,7 +1064,7 @@ std::map<index_t, internal::ElementBlock> gsMultiPatch<T>::BezierOperator() cons
             QuRule->mapTo( domIt->lowerCorner(), domIt->upperCorner(), quPoints, quWeights);
             basis->source().eval_into(quPoints, values); // Evaluate given basis at the mapped quadrature points 
             // Append the local Bezier Extraction matrix to the ElementBlock.coefVectors
-            ElementBlocks[NN].coefVectors.push_back(solver.solve(values.transpose()));
+            ElementBlocks[NN].coefVectors.push_back(solver.solve(values.transpose()).transpose());
         }
     }
 
@@ -1108,7 +1108,7 @@ gsMultiPatch<T> gsMultiPatch<T>::extractBezier() const
 
         for(; Ait != ElBlock.actives.end() && Cit != ElBlock.coefVectors.end(); ++Ait, ++Cit)
         {
-            gsTensorBSpline<2> bezier(kv1,kv2, *Cit * globalCoefs(Ait->asVector(),gsEigen::all));
+            gsTensorBSpline<2> bezier(kv1,kv2, Cit->transpose() * globalCoefs(Ait->asVector(),gsEigen::all));
             // bezier extraction operator * original control points
             result.addPatch(bezier);
         }
