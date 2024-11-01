@@ -222,6 +222,8 @@ namespace gismo
         types*= VTK_BEZIER_QUADRILATERAL;
 
         gsMatrix<T> coefs(bezierExt.coefsSize(), bezierExt.targetDim());
+        gsMatrix<T> weights(bezierExt.coefsSize(),1);
+        weights.setOnes();
 
         // For every patch / bezier element
         for (size_t p=0;p<bezierExt.nPatches();++p)
@@ -236,6 +238,8 @@ namespace gismo
 
             // Tranform control points to vtk ordering and concatenate in coefs
             coefs.middleRows(offset,bezierExt.patch(p).coefsSize()) = IdTransform * bezierExt.patch(p).coefs();
+            if (bezierExt.basis(p).isRational())
+                weights.middleRows(offset,bezierExt.patch(p).coefsSize()) = IdTransform * bezierExt.basis(p).weights();
             offset += bezierExt.patch(p).coefsSize();
         }
 
@@ -245,6 +249,11 @@ namespace gismo
 
         // Format to xml
         stream <<"<Piece NumberOfPoints=\""<< totalPoints<<"\" NumberOfCells=\""<< bezierExt.nPatches()<<"\">\n";
+
+        stream << "<PointData RationalWeights=\"RationalWeights\">\n";
+        stream << "" << toDataArray( weights.transpose() ,{{"Name","RationalWeights"}});
+        stream << "</PointData>\n";
+
 
         stream << "<CellData HigherOrderDegrees=\"HigherOrderDegrees\">\n";
         stream << "" << toDataArray(degrees.transpose(),{{"Name","HigherOrderDegrees"}});
