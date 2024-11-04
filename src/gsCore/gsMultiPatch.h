@@ -23,6 +23,58 @@ namespace gismo
 
 namespace internal
 {
+
+/**
+ * @struct ElementBlock
+ * @brief Represents a bezier extraction operator as a collection of element blocks.
+ *
+ * This structure holds information about a block of elements, including the number
+ * of elements, active nodes, Bezier coefficient vectors, and polynomial degrees
+ * in the R, S, and T directions.
+ *
+ * @var ElementBlock::numElements
+ * Number of (Bezier) elements in the block.
+ *
+ * @var ElementBlock::actives
+ * List of basis functions represented as matrices of indices.
+ *
+ * @var ElementBlock::coefVectors
+ * List of Bezier coefficient vectors represented as matrices of real numbers.
+ *
+ * 
+ * 
+ * @var ElementBlock::PR
+ * Polynomial degree in the R direction.
+ *
+ * @var ElementBlock::PS
+ * Polynomial degree in the S direction.
+ *
+ * @var ElementBlock::PT
+ * Polynomial degree in the T direction.
+ * 
+ * Each local bezier operator is constructed as:
+ * \f$ 
+ * NN_e = \texttt{size(actives)}\left \{ \begin{bmatrix}
+ * N_1 \\ N_2 \\ \vdots \\ N_i
+ * \end{bmatrix}\right.
+ * =
+ * NN_e \left{ \underbrace{
+ * \begin{bmatrix}
+ * \dots & CV_1 & \dots \\ 
+ * \dots & CV_2 & \dots \\ 
+ * & \vdots & \\ 
+ * \dots & CV_i & \dots
+ * \end{bmatrix}
+ * }_{NCVC_i}
+ * \right.
+ * 
+ * 
+ * \left. \begin{bmatrix}
+ * B_1 \\ B_2 \\ B_3 \\ \vdots \\ B_{j-1} \\ B_j
+ * \end{bmatrix}\right \} NCVC_i = \texttt{(PR+1)(PS+1)(PT+1)}
+ * \f$
+ * 
+ */
 struct ElementBlock
 {
     index_t numElements;    // NE
