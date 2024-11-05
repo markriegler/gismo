@@ -78,8 +78,8 @@ namespace internal
 struct ElementBlock
 {
     index_t numElements;    // NE
-    std::list<gsMatrix<index_t>> actives;       // Nodes
-    std::list<gsMatrix<real_t>>  coefVectors;   // Bezier Coefficient Vectors ID
+    std::list<gsMatrix<index_t>> actives;       // Nodes ( size = NE )
+    std::list<gsMatrix<real_t>>  coefVectors;   // Bezier Coefficient Vectors ID ( size = NE )
     index_t PR; // Polynomial degree in R direction  
     index_t PS; // Polynomial degree in S direction  
     index_t PT; // Polynomial degree in T direction  
@@ -530,7 +530,7 @@ private:
 public:
     /// @brief Performs Bezier extraction on the multipatch
     /// @return The ElementBlock structure of the Bezier extraction, which contains the Bezier coefficients and the active nodes for each bezier patch;
-    std::map<index_t, internal::ElementBlock> BezierOperator() const;
+    std::map< std::array<size_t, 4>, internal::ElementBlock> BezierOperator() const;
 
 }; // class gsMultiPatch
 

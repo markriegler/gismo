@@ -195,7 +195,7 @@ gsGeometry<T> * gsMappedSpline<d,T>::exportPatch(int i,gsMatrix<T> const & local
 }
 
 template<short_t d,class T>
-std::map<index_t, internal::ElementBlock> gsMappedSpline<d,T>::BezierOperator() const
+std::map<std::array<size_t, 4>, internal::ElementBlock> gsMappedSpline<d,T>::BezierOperator() const
 {
     GISMO_ENSURE( 2==domainDim(), "Anything other than bivariate splines is not yet supported!");
 
@@ -203,7 +203,7 @@ std::map<index_t, internal::ElementBlock> gsMappedSpline<d,T>::BezierOperator() 
     // information in ElementBlocks. These will be grouped in a std::map
     // with respect to the number of active basis functions ( = NNj/NCV )
     // of each Bezier element
-    std::map<index_t, internal::ElementBlock> ElementBlocks;
+    std::map<std::array<size_t, 4>, internal::ElementBlock> ElementBlocks;
 
     index_t NNj; // Number of control points of the Bezier elements of block j
     gsMatrix<index_t> mappedActives, globalActives, localActives; // Active basis functions
@@ -232,6 +232,7 @@ std::map<index_t, internal::ElementBlock> gsMappedSpline<d,T>::BezierOperator() 
     // The mapped spline's basis functions
     gsMappedBasis<d,T>  mappedBasis = this->getMappedBasis();
 
+    std::array<size_t, 4> key;
     for (size_t p=0; p<this->nPatches(); ++p)
     {
         // Mapped active basis functions
@@ -308,13 +309,17 @@ std::map<index_t, internal::ElementBlock> gsMappedSpline<d,T>::BezierOperator() 
         // gsInfo << "Coefs size:" << coefVectors.rows() << "x" << coefVectors.cols() << "\n\n";
 
         // Put everything in the ElementBlock
-        NNj = mappedActives.size();             // Number of control points (nodes) of the Bezier element
-        ElementBlocks[NNj].numElements += 1;    // Increment the Number of Elements contained in the ElementBlock
-        ElementBlocks[NNj].actives.push_back(mappedActives);  // Append the active basis functions ( = the Node IDs ) for this element.
-        ElementBlocks[NNj].PR = this->getBase(p).degree(0);   // Degree of the Bezier element in the r-direction
-        ElementBlocks[NNj].PS = this->getBase(p).degree(1);   // Degree of the Bezier element in the s-direction
-        ElementBlocks[NNj].PT = 0; // TODO: if implemented for trivariates fix this
-        ElementBlocks[NNj].coefVectors.push_back( coefVectors ); //(!) If it is not  bezier
+        key[0] = mappedActives.rows();
+        key[1] = this->getBase(p).degree(0);
+        key[2] = this->getBase(p).degree(1);
+        key[3] = 0; // TODO: if implemented for trivariates fix this
+        // NNj = mappedActives.size();             // Number of control points (nodes) of the Bezier element
+        ElementBlocks[key].numElements += 1;    // Increment the Number of Elements contained in the ElementBlock
+        ElementBlocks[key].actives.push_back(mappedActives);  // Append the active basis functions ( = the Node IDs ) for this element.
+        ElementBlocks[key].PR = this->getBase(p).degree(0);   // Degree of the Bezier element in the r-direction
+        ElementBlocks[key].PS = this->getBase(p).degree(1);   // Degree of the Bezier element in the s-direction
+        ElementBlocks[key].PT = 0; // TODO: if implemented for trivariates fix this
+        ElementBlocks[key].coefVectors.push_back( coefVectors ); //(!) If it is not  bezier
     }
 
     return ElementBlocks;
