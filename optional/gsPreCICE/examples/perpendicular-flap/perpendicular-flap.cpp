@@ -13,14 +13,21 @@
 
 #include <gismo.h>
 #include <gsPreCICE/gsPreCICE.h>
-// #include <gsPreCICE/gsPreCICEFunction.h>
-#include <gsPreCICE/gsPreCICEVectorFunction.h>
+#include <gsPreCICE/gsPreCICEUtils.h>
+#include <gsPreCICE/gsPreCICEFunction.h>
+// #include <gsPreCICE/gsPreCICEVectorFunction.h>
 
 #include <gsElasticity/gsMassAssembler.h>
 #include <gsElasticity/gsElasticityAssembler.h>
 
 #ifdef gsStructuralAnalysis_ENABLED
-#include <gsStructuralAnalysis/src/gsDynamicSolvers/gsTimeIntegrator.h>
+#include <gsStructuralAnalysis/src/gsDynamicSolvers/gsDynamicExplicitEuler.h>
+#include <gsStructuralAnalysis/src/gsDynamicSolvers/gsDynamicImplicitEuler.h>
+#include <gsStructuralAnalysis/src/gsDynamicSolvers/gsDynamicNewmark.h>
+#include <gsStructuralAnalysis/src/gsDynamicSolvers/gsDynamicBathe.h>
+#include <gsStructuralAnalysis/src/gsDynamicSolvers/gsDynamicWilson.h>
+#include <gsStructuralAnalysis/src/gsDynamicSolvers/gsDynamicRK4.h>
+#include <gsStructuralAnalysis/src/gsStructuralAnalysisTools/gsStructuralAnalysisUtils.h>
 #endif
 
 using namespace gismo;
@@ -33,6 +40,7 @@ int main(int argc, char *argv[])
     index_t numRefine  = 0;
     index_t numElevate = 0;
     std::string precice_config;
+    int method = 3; // 1: Explicit Euler, 2: Implicit Euler, 3: Newmark, 4: Bathe, 5: Wilson, 6 RK4
 
     gsCmdLine cmd("Flow over heated plate for PreCICE.");
     cmd.addInt( "e", "degreeElevation",
@@ -41,8 +49,9 @@ int main(int argc, char *argv[])
     cmd.addString( "c", "config", "PreCICE config file", precice_config );
     cmd.addSwitch("plot", "Create a ParaView visualization file with the solution", plot);
     cmd.addInt("m","plotmod", "Modulo for plotting, i.e. if plotmod==1, plots every timestep", plotmod);
+    cmd.addInt("M", "method","1: Explicit Euler, 2: Implicit Euler, 3: Newmark, 4: Bathe, 5: Wilson, 6: RK4",method);
     try { cmd.getValues(argc,argv); } catch (int rv) { return rv; }
-  
+
     //! [Read input file]
     GISMO_ASSERT(gsFileManager::fileExists(precice_config),"No precice config file has been defined");
 
@@ -62,12 +71,10 @@ int main(int argc, char *argv[])
     numRefine = 0;
 
     gsInfo << "Patches: "<< patches.nPatches() <<", degree: "<< bases.minCwiseDegree() <<"\n";
-    
+
     real_t rho = 3000;
     real_t E = 4e6;
     real_t nu = 0.3;
-    real_t mu = E / (2.0 * (1.0 + nu));
-    real_t lambda = E * nu / ((1.0 + nu) * (1.0 - 2.0 * nu));
 
     // Set the interface for the precice coupling
     std::vector<patchSide> couplingInterfaces(3);
@@ -75,23 +82,43 @@ int main(int argc, char *argv[])
     couplingInterfaces[1] = patchSide(0,boundary::north);
     couplingInterfaces[2] = patchSide(0,boundary::west);
 
-    // TEMPORARY: get assembler options. Should come from the gsElasticityAssembler, but the problem is that that one needs to be defined using the BCs, which need the interface...
+    /*
+     * Initialize the preCICE participant
+     *
+     *
+     */
+    std::string participantName = "Solid";
+    gsPreCICE<real_t> participant(participantName, precice_config);
 
-    gsExprAssembler<> A(1,1);
-    gsOptionList quadOptions = A.options();
+/*
+     * Data initialization
+     *
+     * This participant manages the geometry. The follow meshes and data are made available:
+     *
+     * - Meshes:
+     *   + KnotMesh             This mesh contains the knots as mesh vertices
+     *   + ControlPointMesh:    This mesh contains the control points as mesh vertices
+     *   + ForceMesh:           This mesh contains the integration points as mesh vertices
+     *
+     * - Data:
+     *   + ControlPointData:    This data is defined on the ControlPointMesh and stores the displacement of the control points
+     *   + ForceData:           This data is defined on the ForceMesh and stores pressure/forces
+     */
+    std::string SolidMesh        = "Solid-Mesh";
+    std::string StressData       = "Stress";
+    std::string DisplacementData = "Displacement";
+
+    // Get the quadrature nodes on the coupling interface
+    gsOptionList quadOptions = gsExprAssembler<>::defaultOptions();
 
     // Get the quadrature points
     gsMatrix<> uv = gsQuadrature::getAllNodes(bases.basis(0),quadOptions,couplingInterfaces);
     gsMatrix<> xy = patches.patch(0).eval(uv);
+    gsVector<index_t> xyIDs; // needed for writing
+    participant.addMesh(SolidMesh,xy,xyIDs);
 
     // Define precice interface
-    gsPreCICE<real_t> interface("Solid", precice_config);
-    interface.addMesh("Solid-Mesh",xy);
-    real_t precice_dt = interface.initialize();
-
-    index_t meshID = interface.getMeshID("Solid-Mesh");
-    index_t dispID = interface.getDataID("Displacement",meshID);
-    index_t forceID = interface.getDataID("Stress",meshID);
+    real_t precice_dt = participant.initialize();
 
 // ----------------------------------------------------------------------------------------------
 
@@ -101,12 +128,12 @@ int main(int argc, char *argv[])
     gsConstantFunction<> g_D(0,patches.geoDim());
     // Coupling side
     // gsFunctionExpr<> g_C("1","0",patches.geoDim());
-    gsPreCICEVectorFunction<real_t> g_C(&interface,meshID,forceID,patches,patches.geoDim());
+    gsPreCICEFunction<real_t> g_C(&participant,SolidMesh,StressData,patches,patches.geoDim(),false);
     // Add all BCs
     // Coupling interface
-    bcInfo.addCondition(0, boundary::north,  condition_type::neumann , &g_C);
-    bcInfo.addCondition(0, boundary::east,  condition_type::neumann  , &g_C);
-    bcInfo.addCondition(0, boundary::west,  condition_type::neumann  , &g_C);
+    bcInfo.addCondition(0, boundary::north,  condition_type::neumann , &g_C,-1,true);
+    bcInfo.addCondition(0, boundary::east,  condition_type::neumann  , &g_C,-1,true);
+    bcInfo.addCondition(0, boundary::west,  condition_type::neumann  , &g_C,-1,true);
     // Bottom side (prescribed temp)
     bcInfo.addCondition(0, boundary::south, condition_type::dirichlet, &g_D, 0);
     bcInfo.addCondition(0, boundary::south, condition_type::dirichlet, &g_D, 1);
@@ -146,20 +173,64 @@ int main(int argc, char *argv[])
 
     std::vector<gsMatrix<> > fixedDofs = assembler.allFixedDofs();
     // Assemble the RHS
-    gsMatrix<> F = assembler.rhs();
-    gsMatrix<> F0;
-    gsMatrix<> F_checkpoint, U_checkpoint, V_checkpoint, A_checkpoint;
+    gsVector<> F = assembler.rhs();
+    gsVector<> F_checkpoint, U_checkpoint, V_checkpoint, A_checkpoint, U, V, A;
 
-    F_checkpoint = F0 = F;
-    U_checkpoint = gsVector<real_t>::Zero(assembler.numDofs(),1);
-    V_checkpoint = gsVector<real_t>::Zero(assembler.numDofs(),1);
-    A_checkpoint = gsVector<real_t>::Zero(assembler.numDofs(),1);
+    F_checkpoint = F;
+    U_checkpoint = U = gsVector<real_t>::Zero(assembler.numDofs(),1);
+    V_checkpoint = V = gsVector<real_t>::Zero(assembler.numDofs(),1);
+    A_checkpoint = A = gsVector<real_t>::Zero(assembler.numDofs(),1);
 
     // Define the solution collection for Paraview
-    gsParaviewCollection collection("solution");
+    gsParaviewCollection collection("./output/solution");
 
     index_t timestep = 0;
     index_t timestep_checkpoint = 0;
+
+    // Function for the Jacobian
+    gsStructuralAnalysisOps<real_t>::Jacobian_t Jacobian = [&assembler,&fixedDofs](gsMatrix<real_t> const &x, gsSparseMatrix<real_t> & m) {
+        // to do: add time dependency of forcing
+        assembler.assemble(x, fixedDofs);
+        m = assembler.matrix();
+        return true;
+    };
+
+    // Function for the Residual
+    gsStructuralAnalysisOps<real_t>::TResidual_t Residual = [&assembler,&fixedDofs](gsMatrix<real_t> const &x, real_t t, gsVector<real_t> & result)
+    {
+        assembler.assemble(x,fixedDofs);
+        result = assembler.rhs();
+        return true;
+    };
+
+
+    gsSparseMatrix<> C = gsSparseMatrix<>(assembler.numDofs(),assembler.numDofs());
+    gsStructuralAnalysisOps<real_t>::Damping_t Damping = [&C](const gsVector<real_t> &, gsSparseMatrix<real_t> & m) { m = C; return true; };
+    gsStructuralAnalysisOps<real_t>::Mass_t    Mass    = [&M](                          gsSparseMatrix<real_t> & m) { m = M; return true; };
+
+    gsDynamicBase<real_t> * timeIntegrator;
+    if (method==1)
+        timeIntegrator = new gsDynamicExplicitEuler<real_t,true>(Mass,Damping,Jacobian,Residual);
+    else if (method==2)
+        timeIntegrator = new gsDynamicImplicitEuler<real_t,true>(Mass,Damping,Jacobian,Residual);
+    else if (method==3)
+        timeIntegrator = new gsDynamicNewmark<real_t,true>(Mass,Damping,Jacobian,Residual);
+    else if (method==4)
+        timeIntegrator = new gsDynamicBathe<real_t,true>(Mass,Damping,Jacobian,Residual);
+    else if (method==5)
+    {
+        timeIntegrator = new gsDynamicWilson<real_t,true>(Mass,Damping,Jacobian,Residual);
+        timeIntegrator->options().setReal("gamma",1.4);
+    }
+    else if (method==6)
+        timeIntegrator = new gsDynamicRK4<real_t,true>(Mass,Damping,Jacobian,Residual);
+    else
+        GISMO_ERROR("Method "<<method<<" not known");
+
+    timeIntegrator->options().setReal("DT",dt);
+    timeIntegrator->options().setReal("TolU",1e-3);
+    timeIntegrator->options().setSwitch("Verbose",true);
+
     real_t time = 0;
 
     // Plot initial solution
@@ -170,91 +241,79 @@ int main(int argc, char *argv[])
 
         // solution.patch(0).coefs() -= patches.patch(0).coefs();// assuming 1 patch here
         gsField<> solField(patches,solution);
-        std::string fileName = "./solution" + util::to_string(timestep);
+        std::string fileName = "./output/solution" + util::to_string(timestep);
         gsWriteParaview<>(solField, fileName, 500);
         fileName = "solution" + util::to_string(timestep) + "0";
         collection.addTimestep(fileName,time,".vts");
     }
 
+    gsMatrix<> points(2,1);
+    points.col(0)<<0.5,1;
 
-    // Function for the Residual
-    std::function<gsMatrix<real_t> (real_t) > Forcing;
-    Forcing = [&F,&g_C,&xy](real_t time)
-    {
-        return F;
-    };
+    gsStructuralAnalysisOutput<real_t> writer("pointData.csv",points);
+    writer.init({"x","y"},{"time"}); // point1 - x, point1 - y, time
 
-    gsTimeIntegrator<real_t> timeIntegrator(M,K,Forcing,dt);
-    timeIntegrator.setMethod("Newmark");
-    timeIntegrator.setDisplacement(U_checkpoint);
-    timeIntegrator.setVelocity(V_checkpoint);
-    timeIntegrator.setAcceleration(A_checkpoint);
-    timeIntegrator.constructSolution();
+    gsMatrix<> pointDataMatrix;
+    gsMatrix<> otherDataMatrix(1,1);
 
     // Time integration loop
-    while (interface.isCouplingOngoing())
+    while (participant.isCouplingOngoing())
     {
-        if (interface.isActionRequired(interface.actionWriteIterationCheckpoint()))
+        if (participant.requiresWritingCheckpoint())
         {
-            U_checkpoint = timeIntegrator.displacements();
-            V_checkpoint = timeIntegrator.velocities();
-            A_checkpoint = timeIntegrator.accelerations();
+            U_checkpoint = U;
+            V_checkpoint = V;
+            A_checkpoint = A;
 
             gsInfo<<"Checkpoint written:\n";
-            gsInfo<<"\t ||U|| = "<<timeIntegrator.displacements().norm()<<"\n";
-            gsInfo<<"\t ||V|| = "<<timeIntegrator.velocities().norm()<<"\n";
-            gsInfo<<"\t ||A|| = "<<timeIntegrator.accelerations().norm()<<"\n";
+            gsInfo<<"\t ||U|| = "<<U.norm()<<"\n";
+            gsInfo<<"\t ||V|| = "<<V.norm()<<"\n";
+            gsInfo<<"\t ||A|| = "<<A.norm()<<"\n";
 
 
             timestep_checkpoint = timestep;
-            interface.markActionFulfilled(interface.actionWriteIterationCheckpoint());
         }
 
         assembler.assemble();
         F = assembler.rhs();
 
         // solve gismo timestep
-        gsInfo << "Solving timestep " << time << "...";
-        timeIntegrator.step();
-        timeIntegrator.constructSolution();
-        solVector = timeIntegrator.displacements();
+        gsInfo << "Solving timestep " << time << "...\n";
+        timeIntegrator->step(time,dt,U,V,A);
+        solVector = U;
         gsInfo<<"Finished\n";
 
         // potentially adjust non-matching timestep sizes
         dt = std::min(dt,precice_dt);
-        timeIntegrator.setTimeStep(dt);
+
+        // gsMultiPatch<> solution;
+        // assembler.constructSolution(solVector,fixedDofs,solution);
+        // // write heat fluxes to interface
+        // gsMatrix<> result(patches.geoDim(),uv.cols());
+        // for (index_t k=0; k!=uv.cols(); k++)
+        // {
+        //     // gsDebugVar(ev.eval(nv(G),uv.col(k)));
+        //     result.col(k) = solution.patch(0).eval(uv.col(k));
+        // }
+        // participant.writeBlockVectorData(meshID,dispID,xy,result);
+
 
         gsMultiPatch<> solution;
         assembler.constructSolution(solVector,fixedDofs,solution);
         // write heat fluxes to interface
         gsMatrix<> result(patches.geoDim(),uv.cols());
-        for (index_t k=0; k!=uv.cols(); k++)
-        {
-            // gsDebugVar(ev.eval(nv(G),uv.col(k)));
-            result.col(k) = solution.patch(0).eval(uv.col(k));
-        }
-        interface.writeBlockVectorData(meshID,dispID,xy,result);
+        solution.patch(0).eval_into(uv,result);
+        participant.writeData(SolidMesh,DisplacementData,xyIDs,result);
 
         // do the coupling
-        precice_dt = interface.advance(dt);
+        precice_dt =participant.advance(dt);
 
-        if (interface.isActionRequired(interface.actionReadIterationCheckpoint()))
+        if (participant.requiresReadingCheckpoint())
         {
-            /// Not converged. gsTimeIntegrator should NOT advance
-            timeIntegrator.setTime(time);
-            timeIntegrator.setTimeStep(dt);
-            timeIntegrator.setDisplacement(U_checkpoint);
-            timeIntegrator.setVelocity(V_checkpoint);
-            timeIntegrator.setAcceleration(A_checkpoint);
-            timeIntegrator.constructSolution();
-
-            gsInfo<<"Checkpoint loaded:\n";
-            gsInfo<<"\t ||U|| = "<<timeIntegrator.displacements().norm()<<"\n";
-            gsInfo<<"\t ||V|| = "<<timeIntegrator.velocities().norm()<<"\n";
-            gsInfo<<"\t ||A|| = "<<timeIntegrator.accelerations().norm()<<"\n";
-
+            U = U_checkpoint;
+            V = V_checkpoint;
+            A = A_checkpoint;
             timestep = timestep_checkpoint;
-            interface.markActionFulfilled(interface.actionReadIterationCheckpoint());
         }
         else
         {
@@ -263,18 +322,20 @@ int main(int argc, char *argv[])
             time += dt;
             timestep++;
 
+            gsField<> solField(patches,solution);
             if (timestep % plotmod==0 && plot)
             {
                 // solution.patch(0).coefs() -= patches.patch(0).coefs();// assuming 1 patch here
-                gsField<> solField(patches,solution);
-                std::string fileName = "./solution" + util::to_string(timestep);
+                std::string fileName = "./output/solution" + util::to_string(timestep);
                 gsWriteParaview<>(solField, fileName, 500);
                 fileName = "solution" + util::to_string(timestep) + "0";
                 collection.addTimestep(fileName,time,".vts");
             }
+
+            solution.patch(0).eval_into(points,pointDataMatrix);
+            otherDataMatrix<<time;
+            writer.add(pointDataMatrix,otherDataMatrix);
         }
-
-
     }
 
     if (plot)
