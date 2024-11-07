@@ -484,7 +484,7 @@ template<short_t d,class T>
 index_t gsMappedBasis<d,T>::getGlobalIndex(index_t patch, index_t localIndex)
 {
     GISMO_ASSERT(patch>=0 && patch<m_bases.size(),"patch index out of range");
-    return _getFirstLocalIndex(patch)+localIndex;
+    return _getLocalIndex(patch, localIndex);
 }
 
 template<short_t d,class T>
