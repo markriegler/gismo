@@ -1106,6 +1106,7 @@ gsMultiPatch<T> gsMultiPatch<T>::extractBezier() const
         }
     }
 
+    gsMatrix<> newCoefs, newWeights;
     for (auto const& pair : ElementBlocks)
     {
         internal::ElementBlock ElBlock = pair.second;
@@ -1123,7 +1124,13 @@ gsMultiPatch<T> gsMultiPatch<T>::extractBezier() const
             // If the weights are not all equal (Rational)
             if ( (globalWeights(Ait->asVector(),0).array() != globalWeights(Ait->asVector()(0),0)).any())
             {
-                gsTensorNurbs<2> bezier(kv1,kv1, Cit->transpose() * globalCoefs(Ait->asVector(),gsEigen::all), Cit->transpose()*globalWeights(Ait->asVector(),0));
+                // As per Borden et al. 2010 "Isogeometric finite element data structures
+                // based on Bézier extraction of NURBS", eq (79);
+                newWeights = Cit->transpose() * globalWeights(Ait->asVector(),0);
+                newCoefs = Cit->transpose() * globalWeights(Ait->asVector(),0).asDiagonal() * globalCoefs(Ait->asVector(),gsEigen::all);
+                newCoefs = newCoefs.array().colwise() / newWeights.col(0).array();
+
+                gsTensorNurbs<2> bezier(kv1,kv1, newCoefs, newWeights);
                 result.addPatch(bezier);
             }
             else // If all weights are equal (Polynomial)
