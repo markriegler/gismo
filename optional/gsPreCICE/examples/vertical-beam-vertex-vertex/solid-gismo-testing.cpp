@@ -233,8 +233,9 @@ int main(int argc, char *argv[])
     // Define boundary conditions
     gsBoundaryConditions<> bcInfo;
 
-    bcInfo.addCondition(0, boundary::south, condition_type::dirichlet, 0, 0, false, 0);
-    bcInfo.addCondition(0, boundary::south, condition_type::dirichlet, 0, 0, false, 1);
+    bcInfo.addCondition(0, boundary::west, condition_type::dirichlet, 0, 0, false, 0);
+    bcInfo.addCondition(0, boundary::west, condition_type::dirichlet, 0, 0, false, 1);
+    bcInfo.addCondition(0, boundary::west, condition_type::dirichlet, 0, 0, false, 2);
           
     bcInfo.setGeoMap(patches);
     // gsMatrix<> comPointsData(2, comPt.rows());
@@ -261,20 +262,20 @@ int main(int argc, char *argv[])
 
 
     index_t num_repeat = quadPointsAll.cols()/numQuadPt;
-    gsMatrix<> quadPointDatax = gsMatrix<>::Zero(averagePt.cols(), num_repeat);
     gsMatrix<> quadPointDatay = gsMatrix<>::Zero(averagePt.cols(), num_repeat);
+    gsMatrix<> quadPointDataz = gsMatrix<>::Zero(averagePt.cols(), num_repeat);
     gsDebugVar("Here");
-    gsDebugVar(quadPointDatax);
+    gsDebugVar(quadPointDatay);
 
 
     for (index_t i = 0; i < num_repeat; ++i) 
     {
-        quadPointDatax.col(i) = averagePt.row(0).transpose();
-        quadPointDatay.col(i) = averagePt.row(1).transpose();
+        quadPointDatay.col(i) = averagePt.row(0).transpose();
+        quadPointDataz.col(i) = averagePt.row(1).transpose();
     }
 
-    quadPointDatax.resize(1, quadPointsAll.cols());
     quadPointDatay.resize(1, quadPointsAll.cols());
+    quadPointDataz.resize(1, quadPointsAll.cols());
     gsMatrix<> quadPointsData(3, quadPointsAll.cols());
 
     quadPointsData.setZero();
@@ -470,20 +471,20 @@ int main(int argc, char *argv[])
             averagePt(1, i) = (comForceData(1, i) + comForceData(1, i + numQuadPt)) / 2.0; // Second row average
         }
 
-        quadPointDatax = gsMatrix<>::Zero(averagePt.cols(), num_repeat);
         quadPointDatay = gsMatrix<>::Zero(averagePt.cols(), num_repeat);
+        quadPointDataz = gsMatrix<>::Zero(averagePt.cols(), num_repeat);
 
         for (index_t i = 0; i < num_repeat; ++i) 
         {
-            quadPointDatax.col(i) = averagePt.row(0).transpose();
             quadPointDatay.col(i) = averagePt.row(1).transpose();
+            quadPointDataz.col(i) = averagePt.row(0).transpose();
         }
 
-        quadPointDatax.resize(1, quadPointsAll.cols());
         quadPointDatay.resize(1, quadPointsAll.cols());
+        quadPointDataz.resize(1, quadPointsAll.cols());
 
-        quadPointsData.row(0) << quadPointDatax;
         quadPointsData.row(1) << quadPointDatay;
+        quadPointsData.row(2) << quadPointDataz;
 
         gsDebugVar(quadPointsData);
 
@@ -516,12 +517,12 @@ int main(int argc, char *argv[])
         gsMatrix<> centralPointDisp = solution.patch(0).eval(quadPoints);
         gsMatrix<> dispLeft(2,numQuadPt);
         dispLeft.setZero();
-        dispLeft.row(0) = centralPointDisp.row(0);
+        dispLeft.row(0) = centralPointDisp.row(2);
         dispLeft.row(1) = centralPointDisp.row(1);
 
         gsMatrix<> dispRight(2,numQuadPt);
         dispRight.setZero();
-        dispRight.row(0) = centralPointDisp.row(0);
+        dispRight.row(0) = centralPointDisp.row(2);
         dispRight.row(1) = centralPointDisp.row(1);
 
         gsMatrix<> dispPoints(2, dispLeft.cols() + dispRight.cols());
