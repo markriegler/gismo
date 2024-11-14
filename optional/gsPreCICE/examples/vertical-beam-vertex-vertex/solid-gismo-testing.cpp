@@ -151,7 +151,7 @@ int main(int argc, char *argv[])
      *   + StressData:           This data is defined on the SolidMesh and stores pressure/forces at the integration points
      */
     std::string SolidMesh        = "Solid-Mesh";
-    std::string StressData       = "Stress";
+    std::string StressData       = "Force";
     std::string DisplacementData = "Displacement";
     // std::string ForceMesh        = "Fluid-Mesh";
 
@@ -209,6 +209,12 @@ int main(int argc, char *argv[])
     patches.patch(0).eval_into(quadPoints, phyQuads);
     gsDebugVar(phyQuads);
 
+    gsMatrix<> phyQuadsAll;
+    patches.patch(0).eval_into(quadPointsAll, phyQuadsAll);
+    
+
+    gsDebugVar(phyQuadsAll);
+    gsDebugVar(phyQuadsAll.col(0));
     gsMatrix<> comPtLeft(numQuadPt,2);
     comPtLeft.setZero();
     gsMatrix<> comPtRight(numQuadPt,2);
@@ -283,6 +289,8 @@ int main(int argc, char *argv[])
     gsMatrix<> quadPointsData(3, quadPointsAll.cols());
 
     quadPointsData.setZero();
+    gsDebugVar(quadPointsData.dim());
+    gsDebugVar(quadPointsAll.dim());
     // quadPointsData.row(0) << quadPointDatax;
     // quadPointsData.row(1) << quadPointDatay;
     // gsDebugVar(quadPointsData);
@@ -310,11 +318,12 @@ int main(int argc, char *argv[])
     materialMatrix = getMaterialMatrix<3, real_t>(patches, t, parameters, Density, options);
 
     // Question: how to map the force information onto quad points as a surface force for gsThinShellAssembler?
-    gsLookupFunction<real_t> surfForce(quadPointsAll, quadPointsData);
-
+    gsLookupFunction<real_t> surfForce(phyQuadsAll, quadPointsData);
+    gsDebugVar(quadPointsAll);
+    
     // gsMatrix<> displacementData = gsMatrix<>::Zero(3, comPt.rows());
     // displacementData.setRandom();
-    gsThinShellAssembler<3, real_t, true> assembler(patches, bases, bcInfo, surfForce, materialMatrix);
+    gsThinShellAssembler<3, real_t, false> assembler(patches, bases, bcInfo, surfForce, materialMatrix);
 
     gsOptionList assemblerOptions = options.wrapIntoGroup("Assembler");
 
@@ -510,17 +519,17 @@ int main(int argc, char *argv[])
         solution = assembler.constructDisplacement(displacements);
 
         gsMatrix<> centralPointDisp = solution.patch(0).eval(quadPoints);
-        gsMatrix<> dispLeft(3,numQuadPt);
+        gsMatrix<> dispLeft(2,numQuadPt);
         dispLeft.setZero();
         dispLeft.row(0) = centralPointDisp.row(0).array() -0.05;
         dispLeft.row(1) = centralPointDisp.row(1);
 
-        gsMatrix<> dispRight(3,numQuadPt);
+        gsMatrix<> dispRight(2,numQuadPt);
         dispRight.setZero();
         dispRight.row(0) = centralPointDisp.row(0).array() +0.05;
         dispRight.row(1) = centralPointDisp.row(1);
 
-        gsMatrix<> dispPoints(3, dispLeft.cols() + dispRight.cols());
+        gsMatrix<> dispPoints(2, dispLeft.cols() + dispRight.cols());
         dispPoints << dispLeft, dispRight;
 
 

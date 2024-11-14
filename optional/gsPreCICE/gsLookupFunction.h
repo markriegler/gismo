@@ -91,11 +91,12 @@ public:
     virtual void eval_into(const gsMatrix<T>& u, gsMatrix<T>& result) const
     {
         index_t col;
+	gsDebugVar(u);
         result.resize(this->targetDim(),u.cols());
         result.setZero();
         for (index_t k = 0; k!= u.cols(); k++)
         {
-            
+            gsDebugVar(u.col(k));
             GISMO_ASSERT(m_map.find(u.col(k))!=m_map.end(),"Coordinate " + std::to_string(k) + " not registered in the table");
             col = m_map.at(u.col(k));
             result.col(k) = m_data.col(col);
