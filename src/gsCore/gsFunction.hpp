@@ -249,6 +249,7 @@ void gsFunction<T>::invertPointGrid(gsGridIterator<T,0> & git,
                                     gsMatrix<T> & result, const T accuracy,
                                     const bool useInitialPoint) const
 {
+    GISMO_UNUSED(useInitialPoint);
     result.resize(this->domainDim(), git.numPoints() );
     gsVector<T> arg;
     auto cw = git.numPointsCwise();
@@ -286,7 +287,7 @@ int gsFunction<T>::newtonRaphson_impl(
     bool withSupport,
     const T accuracy,
     int max_loop,
-    double damping_factor, T scale) const
+    T damping_factor, T scale) const
 {
     const index_t n = value.rows();
     const bool squareJac = (n == domainDim());//assumed for _Dim!=-1
@@ -308,10 +309,9 @@ int gsFunction<T>::newtonRaphson_impl(
     int iter = 1;
     T rnorm[2]; rnorm[0]=1e100;
     //T alpha=.5, beta=.5;
-    gsFuncData<> fd(0==mode?(NEED_VALUE|NEED_DERIV):(NEED_DERIV|NEED_HESSIAN));
+    gsFuncData<T> fd(0==mode?(NEED_VALUE|NEED_DERIV):(NEED_DERIV|NEED_HESSIAN));
 
     do {
-        //gsInfo <<"Newton it: "<< arg.transpose()<<"\n";
         this->compute(arg,fd);
         residual = (0==mode?fd.values[0]:fd.values[1]);
 
@@ -347,7 +347,7 @@ int gsFunction<T>::newtonRaphson_impl(
                         gsMatrix<T>::Identity(n,n)) * residual;
 
         const T rr = ( 1==iter ? (T)1.51 : rnorm[(iter-1)%2]/rnorm[iter%2] ); //important to start with small step
-        damping_factor = rr<1.5 ? math::max(0.1 + (rr/99),(rr-0.5)*damping_factor) : math::min((T)1,rr*damping_factor);
+        damping_factor = rr<1.5 ? math::max((T)0.1 + (rr/99),(rr-(T)0.5)*damping_factor) : math::min((T)1,rr*damping_factor);
 
         //Line search
         /*
@@ -359,15 +359,22 @@ int gsFunction<T>::newtonRaphson_impl(
         }
         */
 
-        // gsInfo << "Newton it " << iter << " arg=" << arg.transpose() << ", f(arg)="
-        //        << (0==mode?fd.values[0]:fd.values[1]).transpose() << ", res=" << residual.transpose()
-        //        <<" ("<<rr<<" ~ "<<damping_factor<<"), norm=" << rnorm[iter%2] << "\n";
+        //gsInfo << "Newton it " << iter << " arg=" << arg.transpose() << ", f(arg)="
+        //       << (0==mode?fd.values[0]:fd.values[1]).transpose() << ", res=" << residual.transpose()
+        //       <<" ("<<rr<<" ~ "<<damping_factor<<"), norm=" << rnorm[iter%2] << "\n";
 
         // update arg
         arg += damping_factor * delta;
 
         if ( withSupport )
+        {
+            if ( delta.norm()<accuracy )
+            {
+                //gsInfo <<"OK: Newton reached boundary of support "<< delta.norm() <<"\n";
+                return iter;
+            }
             arg = arg.cwiseMax( supp.col(0) ).cwiseMin( supp.col(1) );
+        }
 
     } while (++iter <= max_loop);
 
@@ -438,7 +445,7 @@ int gsFunction<T>::newtonRaphson(const gsVector<T> & value,
                                  bool withSupport,
                                  const T accuracy,
                                  int max_loop,
-                                 double damping_factor) const
+                                 T damping_factor) const
 {
     GISMO_ASSERT( value.rows() == targetDim(),
                   "Invalid input values:"<< value.rows()<<"!="<<targetDim());
@@ -450,7 +457,7 @@ template <class T>
 gsMatrix<T> gsFunction<T>::argMin(const T accuracy,
                                   int max_loop,
                                   gsMatrix<T> init,
-                                  double damping_factor) const
+                                  T damping_factor) const
 {
     GISMO_ASSERT(1==targetDim(), "Currently argMin works for scalar functions");
     gsVector<T> result;
@@ -596,7 +603,8 @@ gsFunction<T>::hessian_into(const gsMatrix<T>& u, gsMatrix<T> & result,
     gsMatrix<T> secDers;
     this->deriv2_into(u, secDers);
     const index_t dim = this->domainDim();
-    result = util::secDerToHessian(secDers, dim);
+    const index_t nd = dim*(dim+1)/2;
+    result = util::secDerToHessian(secDers.middleCols(coord*nd,nd), dim);
 }
 
 template <typename T, short_t domDim, short_t tarDim>

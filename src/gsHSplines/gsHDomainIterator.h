@@ -14,7 +14,7 @@
 #pragma once
 
 #include <gsHSplines/gsHDomain.h>
-
+#include <gsHSplines/gsKdNode.h>
 #include <gsNurbs/gsTensorBSplineBasis.h>
 
 #include <gsCore/gsDomainIterator.h>
@@ -39,7 +39,7 @@ class gsHDomainIterator: public gsDomainIterator<T>
 {
 public:
 
-    typedef kdnode<d, index_t> node;
+    typedef gsKdNode<d, index_t> node;
 
     typedef typename node::point point;
 
@@ -110,6 +110,7 @@ public:
     /// iteration through all boundary elements.
     void reset()
     {
+        m_id = 0;
         const gsHTensorBasis<d, T>* hbs =  dynamic_cast<const gsHTensorBasis<d, T> *>(m_basis);
         m_leaf = hbs->tree().beginLeafIterator();
         updateLeaf();

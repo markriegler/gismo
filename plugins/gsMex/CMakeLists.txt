@@ -7,6 +7,11 @@
 
 project( gsMex )
 
+#Test architecture is none
+if(NOT "x${TARGET_ARCHITECTURE}" STREQUAL "xnone")
+  message(WARNING "Target architecture is ${TARGET_ARCHITECTURE}, use TARGET_ARCHITECTURE=none for Matlab plugin to work.")
+endif()
+
 #For El Capitan
 #see https://gitlab.kitware.com/cmake/community/wikis/doc/cmake/RPATH-handling
 #set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
@@ -60,7 +65,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES LABELS "${PROJECT_NAME}" FOLDER
 add_custom_command(TARGET ${PROJECT_NAME}
   POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E echo 'To get started in Matlab execute set_path.m from  ${CMAKE_CURRENT_BINARY_DIR}'
-  COMMAND ${CMAKE_COMMAND} -E echo 'Tests are located at ${CMAKE_CURRENT_SOURCE_DIR}/tests'
+  COMMAND ${CMAKE_COMMAND} -E echo 'Tests are located at ${CMAKE_CURRENT_SOURCE_DIR}/test'
   )
       
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/set_path.m.in" "${CMAKE_CURRENT_BINARY_DIR}/set_path.m")

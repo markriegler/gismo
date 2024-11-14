@@ -5,8 +5,8 @@
 #pragma once
 
 #include <gsCore/gsLinearAlgebra.h>
-#include <gsIO/gsOptionList.h>
 #include <gsOptimizer/gsOptimizer.h>
+
 #include <gsOptimizer/gsOptProblem.h>
 
 #ifdef _OPENMP
