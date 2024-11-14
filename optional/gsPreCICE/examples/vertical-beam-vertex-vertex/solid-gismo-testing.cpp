@@ -125,17 +125,6 @@ int main(int argc, char *argv[])
     // typedef gsExprAssembler<>::space       space;
     // typedef gsExprAssembler<>::solution    solution;
 
-    // gsExprAssembler<> A_quad(1,1);
-
-    // gsInfo<<"Active options:\n"<< A.options() <<"\n";
-
-    // A.setIntegrationElements(bases);
-
-    // gsExprEvaluator<> ev(A);
-
-
-
-
 
     /*
      * Data initialization
@@ -156,10 +145,10 @@ int main(int argc, char *argv[])
     // std::string ForceMesh        = "Fluid-Mesh";
 
     // HUGO: These are incorrect. Question: should they be boundary::??
-    std::vector<patchSide> couplingInterfaces(3);
-    couplingInterfaces[0] = patchSide(0,boundary::west);
-    couplingInterfaces[1] = patchSide(0,boundary::north);
-    couplingInterfaces[2] = patchSide(0,boundary::east);
+    // std::vector<patchSide> couplingInterfaces(3);
+    // couplingInterfaces[0] = patchSide(0,boundary::west);
+    // couplingInterfaces[1] = patchSide(0,boundary::north);
+    // couplingInterfaces[2] = patchSide(0,boundary::east);
 
 
 
@@ -244,9 +233,9 @@ int main(int argc, char *argv[])
     // Define boundary conditions
     gsBoundaryConditions<> bcInfo;
 
-    bcInfo.addCondition(0, condition_type::dirichlet, 0, 0, false, 0 );
-    bcInfo.addCondition(0, condition_type::dirichlet, 0, 0, false, 1 );
-    // bcInfo.addCondition(0, boundary::south, condition_type::clamped, nullptr, 2);
+    bcInfo.addCondition(0, boundary::south, condition_type::dirichlet, 0, 0, false, 0);
+    bcInfo.addCondition(0, boundary::south, condition_type::dirichlet, 0, 0, false, 1);
+          
     bcInfo.setGeoMap(patches);
     // gsMatrix<> comPointsData(2, comPt.rows());
     // gsMatrix<> comForceData(3, comPt.rows());
@@ -318,11 +307,11 @@ int main(int argc, char *argv[])
     materialMatrix = getMaterialMatrix<3, real_t>(patches, t, parameters, Density, options);
 
     // Question: how to map the force information onto quad points as a surface force for gsThinShellAssembler?
-    gsLookupFunction<real_t> surfForce(phyQuadsAll, quadPointsData);
-    gsDebugVar(quadPointsAll);
+    gsLookupFunction<real_t> surfForce(quadPointsAll, quadPointsData);
     
     // gsMatrix<> displacementData = gsMatrix<>::Zero(3, comPt.rows());
     // displacementData.setRandom();
+
     gsThinShellAssembler<3, real_t, false> assembler(patches, bases, bcInfo, surfForce, materialMatrix);
 
     gsOptionList assemblerOptions = options.wrapIntoGroup("Assembler");
@@ -346,10 +335,10 @@ int main(int argc, char *argv[])
     gsParaviewCollection collection(dirname + "/solution");
 
     // Time step
-    real_t dt = precice_dt;
     // real_t dt = 0.1;
     real_t t_read = 0;
     real_t t_write = 0;
+    real_t dt = precice_dt;
 
     gsStructuralAnalysisOps<real_t>::Jacobian_t Jacobian = [&assembler,&solutions](gsMatrix<real_t> const &x, gsSparseMatrix<real_t> & m) 
     {
@@ -403,13 +392,16 @@ int main(int argc, char *argv[])
     timeIntegrator->options().setReal("TolU",1e-3);
     timeIntegrator->options().setSwitch("Verbose",true);
 
-    // Project u_wall as initial condition (violates Dirichlet side on precice interface)
+    // Project u_wall as ini
+    // tial condition (violates Dirichlet side on precice interface)
     // RHS of the projection
     gsMatrix<> solVector;
     solVector.setZero(assembler.numDofs(),1);
 
     // Assemble the RHS
     gsVector<> F = assembler.rhs();
+
+    gsDebugVar(F);
 
     gsVector<> F_checkpoint, U_checkpoint, V_checkpoint, A_checkpoint, U, V, A;
 
@@ -442,8 +434,8 @@ int main(int argc, char *argv[])
     gsMatrix<> pointDataMatrix;
     gsMatrix<> otherDataMatrix(1,1);
 
-    gsMatrix<>comForceData(2, comPt.rows());
-    comForceData.setZero();
+    gsMatrix<>comForceData(3, comPt.rows());
+    // comForceData.setZero();
 
      while (participant.isCouplingOngoing())
     {
@@ -458,15 +450,17 @@ int main(int argc, char *argv[])
             gsInfo<<"\t ||V|| = "<<V.norm()<<"\n";
             gsInfo<<"\t ||A|| = "<<A.norm()<<"\n";
 
-
             timestep_checkpoint = timestep;
         }
 
+        // assembler.assemble();
+        // F = assembler.rhs();
+
+        gsDebugVar(bcInfo);
         
-        participant.readData(SolidMesh,StressData,comForceIDs,comForceData);
+        participant.readData(SolidMesh,StressData,quadPointIDs,comForceData);
 
-
-        gsDebugVar(comForceData.dim());
+        gsDebugVar(comForceData);
 
              //Is this really an average? (maybe need to consider normal vector)
         for (index_t i = 0; i < numQuadPt; ++i) 
@@ -487,9 +481,7 @@ int main(int argc, char *argv[])
 
         quadPointDatax.resize(1, quadPointsAll.cols());
         quadPointDatay.resize(1, quadPointsAll.cols());
-        gsMatrix<> quadPointsData(3, quadPointsAll.cols());
 
-        quadPointsData.setZero();
         quadPointsData.row(0) << quadPointDatax;
         quadPointsData.row(1) << quadPointDatay;
 
@@ -502,12 +494,13 @@ int main(int argc, char *argv[])
         // forceMesh.embed(3);
         assembler.assemble();
         F = assembler.rhs();
-        // gsDebugVar(F);
 
         // solve gismo timestep
         gsInfo << "Solving timestep " << time << "...\n";
         timeIntegrator->step(time,dt,U,V,A);
         solVector = U;
+
+        gsDebugVar(solVector);
 
         gsInfo<<"Finished\n";
 
@@ -518,15 +511,17 @@ int main(int argc, char *argv[])
         gsVector<> displacements = U;
         solution = assembler.constructDisplacement(displacements);
 
+        gsDebugVar(displacements);
+
         gsMatrix<> centralPointDisp = solution.patch(0).eval(quadPoints);
         gsMatrix<> dispLeft(2,numQuadPt);
         dispLeft.setZero();
-        dispLeft.row(0) = centralPointDisp.row(0).array() -0.05;
+        dispLeft.row(0) = centralPointDisp.row(0);
         dispLeft.row(1) = centralPointDisp.row(1);
 
         gsMatrix<> dispRight(2,numQuadPt);
         dispRight.setZero();
-        dispRight.row(0) = centralPointDisp.row(0).array() +0.05;
+        dispRight.row(0) = centralPointDisp.row(0);
         dispRight.row(1) = centralPointDisp.row(1);
 
         gsMatrix<> dispPoints(2, dispLeft.cols() + dispRight.cols());
