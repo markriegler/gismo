@@ -80,10 +80,24 @@ int main(int argc, char *argv[])
     gsMultiPatch<> patches;
     patches.addPatch(gsNurbsCreator<>::BSplineRectangle(0.0,0.0,0.2,1.0));// HUGO: Is this size correct?
 
+    gsMatrix<> coefs(3,patches.patch(0).coefs().rows());
+
+    coefs.row(0).setZero();
+    coefs.row(1) = patches.patch(0).coefs().col(1).transpose();
+    coefs.row(2) = patches.patch(0).coefs().col(0).transpose();
+
+    patches.embed(3);
+    patches.patch(0).coefs() = coefs.transpose();
+
+    patches.addAutoBoundaries();
+
+    gsDebugVar(patches.patch(0).coefs());
+
+    gsWriteParaview(patches,"./output/geometry");
+
+
     // Embed the 2D geometry to 3D
     gsMultiPatch<> solutions;
-    patches.addAutoBoundaries();
-    patches.embed(3);
     // patches.embed(3);
     // source function, rhs
     gsConstantFunction<> g(0.,0.,3);
@@ -233,9 +247,8 @@ int main(int argc, char *argv[])
     // Define boundary conditions
     gsBoundaryConditions<> bcInfo;
 
-    bcInfo.addCondition(0, boundary::west, condition_type::dirichlet, 0, 0, false, 0);
-    bcInfo.addCondition(0, boundary::west, condition_type::dirichlet, 0, 0, false, 1);
-    bcInfo.addCondition(0, boundary::west, condition_type::dirichlet, 0, 0, false, 2);
+    bcInfo.addCondition(0, boundary::south, condition_type::dirichlet, 0, 0, false, 0);
+    bcInfo.addCondition(0, boundary::south, condition_type::dirichlet, 0, 0, false, 1);
           
     bcInfo.setGeoMap(patches);
     // gsMatrix<> comPointsData(2, comPt.rows());
@@ -484,7 +497,7 @@ int main(int argc, char *argv[])
         quadPointDataz.resize(1, quadPointsAll.cols());
 
         quadPointsData.row(1) << quadPointDatay;
-        quadPointsData.row(2) << quadPointDataz;
+        quadPointsData.row(0) << quadPointDataz;
 
         gsDebugVar(quadPointsData);
 
@@ -517,12 +530,12 @@ int main(int argc, char *argv[])
         gsMatrix<> centralPointDisp = solution.patch(0).eval(quadPoints);
         gsMatrix<> dispLeft(2,numQuadPt);
         dispLeft.setZero();
-        dispLeft.row(0) = centralPointDisp.row(2);
+        dispLeft.row(0) = centralPointDisp.row(0);
         dispLeft.row(1) = centralPointDisp.row(1);
 
         gsMatrix<> dispRight(2,numQuadPt);
         dispRight.setZero();
-        dispRight.row(0) = centralPointDisp.row(2);
+        dispRight.row(0) = centralPointDisp.row(0);
         dispRight.row(1) = centralPointDisp.row(1);
 
         gsMatrix<> dispPoints(2, dispLeft.cols() + dispRight.cols());
