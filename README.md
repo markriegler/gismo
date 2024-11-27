@@ -13,6 +13,25 @@
 ======================================================================
 ```
 
+![GitHub License](https://img.shields.io/github/license/gismo/gismo?color=008A00)
+
+![Static Badge](https://img.shields.io/badge/C%2B%2B-008A00)
+![GitHub Release](https://img.shields.io/github/v/release/gismo/gismo?label=Latest%20release&color=008A00) 
+![GitHub Release Date](https://img.shields.io/github/release-date/gismo/gismo?display_date=published_at&label=%20&color=008A00)
+![GitHub commits since latest release](https://img.shields.io/github/commits-since/gismo/gismo/latest?label=commits%20since&color=008A00)
+![GitHub Downloads (all assets, latest release)](https://img.shields.io/github/downloads/gismo/gismo/latest/total?color=008A00)
+
+
+![Static Badge](https://img.shields.io/badge/Python-008A00)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pygismo?label=versions&color=008A00) 
+![PyPI - Downloads](https://img.shields.io/pypi/dm/pygismo?color=008A00)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/gismo/gismo/build_wheels.yml?label=wheel%20builds&color=008A00)
+
+![Static Badge](https://img.shields.io/badge/Julia-008A00)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/JuliaBinaryWrappers/gismo_jll.jl/total?label=Downloads%20(gismo_jll)&color=008A00)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/gismo/Gismo.jl/total?label=Downloads%20(Gismo.jl)&color=008A00)
+
+
 # Continuous Integration status
 | **System** | **Status** | **More information** |
 |------------|------------|----------------------|
