@@ -26,6 +26,7 @@
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pygismo?label=versions&color=008A00) 
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/pygismo?color=008A00)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/gismo/gismo/build_wheels.yml?label=wheel%20builds&color=008A00)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/gismo/try_gismo/HEAD?labpath=python)
 
 ![Static Badge](https://img.shields.io/badge/Julia-008A00)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/JuliaBinaryWrappers/gismo_jll.jl/total?label=Downloads%20(gismo_jll)&color=008A00)
