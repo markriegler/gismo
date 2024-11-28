@@ -172,16 +172,67 @@ int main(int argc, char* argv[]) {
       << "\tVelocity: " << function_basis_velocity.size() << '\n'
       << "\tPressure: " << function_basis_pressure.size() << '\n';
 
+  GISMO_ASSERT(solution_velocity.size() == solution_velocity_recreated.size(), 
+    "Size of solution vectors for velocity do not have the same dimension!");
+  GISMO_ASSERT(solution_pressure.size() == solution_pressure_recreated.size(), 
+    "Size of solution vectors for pressure do not have the same dimension!");
+
+  index_t psize = solution_pressure.size();
+  index_t vsize = solution_velocity.size();
+  gsMatrix<> full_solution(psize+vsize, 1), full_solution_recreated(psize+vsize, 1);
+  for (index_t i = 0; i < psize; i++) {
+    full_solution[i] = solution_pressure[i];
+    full_solution_recreated[i] = solution_pressure_recreated[i];
+  }
+  for (index_t i = 0; i < vsize; i++) {
+    full_solution[psize+i] = solution_velocity[i];
+    full_solution_recreated[psize+i] = solution_velocity_recreated[i];
+  }
 
   // Solution vector and solution variable
   solution pressure_field = 
-      expr_assembler.getSolution(pressure_trial_space, solution_pressure);
+      expr_assembler.getSolution(pressure_trial_space, full_solution);
   solution velocity_field =
-      expr_assembler.getSolution(velocity_trial_space, solution_velocity);
+      expr_assembler.getSolution(velocity_trial_space, full_solution);
   solution pressure_field_recreated =
-      expr_assembler.getSolution(pressure_trial_space, solution_pressure_recreated);
-  solution velocity_recreated = 
-      expr_assembler.getSolution(velocity_trial_space, solution_velocity_recreated);
+      expr_assembler.getSolution(pressure_trial_space, full_solution_recreated);
+  solution velocity_field_recreated = 
+      expr_assembler.getSolution(velocity_trial_space, full_solution_recreated);
+
+  pressure_trial_space.setup(0);
+  velocity_trial_space.setup(0);
+
+  // Another smaller vector will be used for the fields actually, therefore retrieve
+  // the respective values from the original vector
+
+  // Get mapping
+  const gsDofMapper pmapper = pressure_field.mapper();
+  const gsDofMapper velmapper = velocity_field.mapper();
+
+  // Get inverse Dofs
+  std::vector<index_t> globalDofs, velocityDofs;
+  globalDofs = pmapper.getInverseDofs();
+  velocityDofs = velmapper.getInverseDofs();
+  index_t psize_true, vsize_true;
+  psize_true = globalDofs.size();
+  vsize_true = velocityDofs.size();
+
+  // Concatenate all dofs into into big vector
+  std::for_each(velocityDofs.begin(), velocityDofs.end(), [psize](index_t& dof){ dof += psize;});
+  globalDofs.insert(globalDofs.end(), velocityDofs.begin(), velocityDofs.end());
+  std::for_each(velocityDofs.begin(), velocityDofs.end(), [vsize](index_t& dof) { dof += vsize;});
+  globalDofs.insert(globalDofs.end(), velocityDofs.begin(), velocityDofs.end());
+
+  gsMatrix<> full_solution_true_dofs, full_solution_recreated_true_dofs;
+  full_solution_true_dofs.resize(globalDofs.size(), 1);
+  full_solution.submatrixRows(globalDofs, full_solution_true_dofs);
+  pressure_field.setSolutionVector(full_solution_true_dofs);
+  velocity_field.setSolutionVector(full_solution_true_dofs);
+
+  full_solution_recreated_true_dofs.resize(globalDofs.size(), 1);
+  full_solution_recreated.submatrixRows(globalDofs, full_solution_recreated_true_dofs);
+  pressure_field_recreated.setSolutionVector(full_solution_recreated_true_dofs);
+  velocity_field_recreated.setSolutionVector(full_solution_recreated_true_dofs);
 
   // Initialize the system
   expr_assembler.initSystem();
@@ -243,6 +294,61 @@ int main(int argc, char* argv[]) {
           << "\n\tLinf(rel.): " << linferror_rel_pressure
           << '\n';
 
+  // Workaround for velocity: get own solution field and only set respective entries
+  // in the solution vector
+  gsMatrix<> full_velx_solution(globalDofs.size(), 1), full_vely_solution(globalDofs.size(), 1),
+            full_velx_rec_solution(globalDofs.size(), 1), full_vely_rec_solution(globalDofs.size(), 1);
+  for (index_t i = 0; i < vsize_true; i++) {
+    index_t xIndex = i+psize_true;
+    index_t yIndex = i + psize_true+vsize_true;
+    full_velx_solution[xIndex] = full_solution_true_dofs[xIndex];
+    full_velx_rec_solution[xIndex] = full_solution_recreated_true_dofs[xIndex];
+    full_vely_solution[yIndex] = full_solution_true_dofs[yIndex];
+    full_vely_rec_solution[yIndex] = full_solution_recreated_true_dofs[yIndex];
+  }
+
+  solution velx_field = expr_assembler.getSolution(velocity_trial_space, full_velx_solution);
+  solution velx_rec_field = expr_assembler.getSolution(velocity_trial_space, full_velx_rec_solution);
+  solution vely_field = expr_assembler.getSolution(velocity_trial_space, full_vely_solution);
+  solution vely_rec_field = expr_assembler.getSolution(velocity_trial_space, full_vely_rec_solution);
+  
+  gsMatrix<> velx_difference = full_velx_solution - full_velx_rec_solution;
+  gsMatrix<> vely_difference = full_vely_solution - full_vely_rec_solution;
+  solution error_velx = expr_assembler.getSolution(velocity_trial_space, velx_difference);
+  solution error_vely = expr_assembler.getSolution(velocity_trial_space, vely_difference);
+
+  double l1error_velx = expression_evaluator.integral(
+    abs(velx_field.val() - velx_rec_field.val()) * meas(geoMap)
+  );
+  double l1error_rel_velx = expression_evaluator.integral(
+    (abs(velx_field.val() - velx_rec_field.val()) / velx_field.val()) * meas(geoMap)
+  );
+  double l2error_velx = math::sqrt(expression_evaluator.integral(
+    (velx_field - velx_rec_field).sqNorm() * meas(geoMap)
+  ));
+  double l2error_rel_velx = math::sqrt(expression_evaluator.integral(
+    ((velx_field - velx_rec_field) / velx_field.val()).sqNorm() * meas(geoMap)
+  ));
+  double linferror_velx = expression_evaluator.max(
+    abs(velx_field.val() - velx_rec_field.val())
+  );
+  double linferror_rel_velx = expression_evaluator.max(
+    abs(velx_field.val() - velx_rec_field.val()) / abs(velx_field.val())
+  );
+  double h1error_velx = l2error_velx + math::sqrt(expression_evaluator.integral(
+    (igrad(velx_field) - igrad(velx_rec_field)).sqNorm() * meas(geoMap)
+  ));
+
+  gsInfo  << "Velocity (x):"
+          << "\n\tL1        : " << l1error_velx
+          << "\n\tL2        : " << l2error_velx
+          << "\n\tLinf      : " << linferror_velx
+          << "\n\tH1        : " << h1error_velx
+          << "\n\tL1  (rel.): " << l1error_rel_velx
+          << "\n\tL2  (rel.): " << l2error_rel_velx
+          << "\n\tLinf(rel.): " << linferror_rel_velx
+          << '\n';
+
   //////////////////////////////
   // Export and Visualization //
   //////////////////////////////
@@ -263,7 +369,12 @@ int main(int argc, char* argv[]) {
       error_pressure.norm() / pressure_field.val(),
       "pressure (Error (rel.))"
     );
-    // collection.addField(velocity_field, "velocity");
+    collection.addField(velocity_field, "velocity");
+    collection.addField(velocity_field_recreated, "velocity (recreated)");
+    collection.addField(error_velx.norm(), "velocity_x (Error (abs.))");
+    collection.addField(error_velx.norm() / velx_field.val(), "velocity_x (Error (rel.))");
+    collection.addField(error_vely.norm(), "velocity_y (Error (abs.))");
+    collection.addField(error_vely.norm() / vely_field.val(), "velocity_y (Error (rel.))");
     collection.saveTimeStep();
     collection.save();
     gsInfo << "\tFinished" << std::endl;

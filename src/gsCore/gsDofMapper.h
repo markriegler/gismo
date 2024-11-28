@@ -528,6 +528,45 @@ public:
      /// \brief Returns all tagged dofs on patch k (local dof indices)
      gsVector<index_t> findTagged(const index_t k) const;
 
+     std::vector<index_t> getUniqueDofs() const {
+        std::vector<index_t> uniqueDofs;
+        std::unordered_map<index_t, index_t> encountered;
+        for (auto &dof : m_dofs[0]) {
+            if (encountered[dof] == 0) {
+                    uniqueDofs.push_back(dof);
+                }
+                encountered[dof]++;
+        }
+        
+        return uniqueDofs;
+     }
+
+     /// @brief For each global DoF finds the corresponding (first) entry in a full solution 
+     /// vector (full: every patch's local DoFs have corresponding entry in sol. vector)
+     /// @return Vector of inverse DoF mapping
+     std::vector<index_t> getInverseDofs() const {
+        std::vector<index_t> inverseDofs;
+        index_t globalDof = {0};
+        bool foundEntry = false;
+        while (true) {
+            for (index_t solVectorDof = 0; solVectorDof < m_dofs[0].size(); solVectorDof++) {
+                if (m_dofs[0][solVectorDof] == globalDof) {
+                    inverseDofs.push_back(solVectorDof);
+                    foundEntry = true;
+                    break;
+                }
+            }
+            if (foundEntry) {
+                foundEntry = false;
+                globalDof++;
+            } else {
+                break;
+            }
+        }
+
+        return inverseDofs;
+     }
+
 private:
 
     template<class Predicate, class Iterator>
