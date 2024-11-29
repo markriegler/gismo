@@ -528,19 +528,6 @@ public:
      /// \brief Returns all tagged dofs on patch k (local dof indices)
      gsVector<index_t> findTagged(const index_t k) const;
 
-     std::vector<index_t> getUniqueDofs() const {
-        std::vector<index_t> uniqueDofs;
-        std::unordered_map<index_t, index_t> encountered;
-        for (auto &dof : m_dofs[0]) {
-            if (encountered[dof] == 0) {
-                    uniqueDofs.push_back(dof);
-                }
-                encountered[dof]++;
-        }
-        
-        return uniqueDofs;
-     }
-
      /// @brief For each global DoF finds the corresponding (first) entry in a full solution 
      /// vector (full: every patch's local DoFs have corresponding entry in sol. vector)
      /// @return Vector of inverse DoF mapping
