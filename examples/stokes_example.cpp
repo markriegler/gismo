@@ -260,6 +260,20 @@ int main(int argc, char* argv[]) {
   solving_time_ls += timer.stop();
   gsInfo << "\tFinished" << std::endl;
 
+  // gsDebugVar(expr_assembler.matrix().toDense());
+  // gsDebugVar(expr_assembler.rhs().transpose());
+
+  // // For debugging boundary conditions
+  // size_t nbds = 0;
+  //  for (typename gsBoundaryConditions<>::const_iterator cit =
+  //          velocity_bcs.dirichletBegin();
+  //      cit != velocity_bcs.dirichletEnd(); cit++) {
+  //   // gsInfo << cit->patch() << " " << cit->side() << " " << cit->unknown() <<
+  //   // " "
+  //   //        << cit->unkComponent() << " " << *(cit->function()) << std::endl;
+  //     nbds++;
+  // }
+
   ////////////////////
   // Postprocessing //
   ////////////////////
@@ -293,21 +307,26 @@ int main(int argc, char* argv[]) {
   if (export_xml) {
     gsInfo << "Starting the xml export ..." << std::flush;
 
-    // Export pressure
-    gsMatrix<> full_solution_pressure;
-    gsFileData<> output_pressure;
-    pressure_field.extractFull(
-        full_solution_pressure);  // patch-wise solution with BCs
-    output_pressure << full_solution_pressure;
-    output_pressure.save("pressure_field.xml");
+    // Export pressure and velocity free DoFs in one matrix
+    gsFileData<> output_both;
+    output_both << full_solution;
+    output_both.save("both_fields.xml");
 
-    // Export velocity
-    gsMatrix<> full_solution_velocity;
-    gsFileData<> output;
-    velocity_field.extractFull(
-        full_solution_velocity);  // patch-wise solution with BCs
-    output << full_solution_velocity;
-    output.save("velocity_field.xml");
+    // // Export pressure
+    // gsMatrix<> full_solution_pressure;
+    // gsFileData<> output_pressure;
+    // pressure_field.extractFull(
+    //     full_solution_pressure);  // patch-wise solution with BCs
+    // output_pressure << full_solution_pressure;
+    // output_pressure.save("pressure_field.xml");
+
+    // // Export velocity
+    // gsMatrix<> full_solution_velocity;
+    // gsFileData<> output;
+    // velocity_field.extractFull(
+    //     full_solution_velocity);  // patch-wise solution with BCs
+    // output << full_solution_velocity;
+    // output.save("velocity_field.xml");
 
     gsInfo << "\t\tFinished" << std::endl;
   }
