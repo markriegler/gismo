@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
   cmd.addString("f", "microstructure-file", "Input file for geometry", fn);
 
   // A few more mesh options
-  index_t mp_id{0};
+  index_t mp_id{0}, vel_bc_id{2}, p_bc_id{3};
   cmd.addInt("m", "multipach_id", "ID of the multipatch mesh in mesh file",
              mp_id);
 
@@ -84,6 +84,21 @@ int main(int argc, char* argv[]) {
   // retrieve multi-patch data
   gsMultiPatch<> domain_patches;
   fd.getId(mp_id, domain_patches);
+
+  // retrieve velocity boundary conditions from file
+  gsBoundaryConditions<> velocity_bcs;
+  fd.getId(vel_bc_id, velocity_bcs);
+  velocity_bcs.setGeoMap(domain_patches);
+  gsInfo << "Velocity boundary conditions:\n" << velocity_bcs << std::endl;
+
+  bool has_p_bc = false;
+  gsBoundaryConditions<> pressure_bcs;
+  if (fd.hasId(p_bc_id)) {
+    has_p_bc = true;
+    fd.getId(p_bc_id, pressure_bcs);
+    pressure_bcs.setGeoMap(domain_patches);
+    gsInfo << "Presure boundary conditions:\n" << pressure_bcs << '\n';
+  }
 
   const index_t geomDim = domain_patches.geoDim();
   gsInfo << "Geometric dimension " << geomDim << std::endl;
@@ -199,40 +214,14 @@ int main(int argc, char* argv[]) {
   solution velocity_field_recreated = 
       expr_assembler.getSolution(velocity_trial_space, full_solution_recreated);
 
-  pressure_trial_space.setup(0);
-  velocity_trial_space.setup(0);
-
-  // Another smaller vector will be used for the fields actually, therefore retrieve
-  // the respective values from the original vector
-
-  // Get mapping
-  const gsDofMapper pmapper = pressure_field.mapper();
-  const gsDofMapper velmapper = velocity_field.mapper();
-
-  // Get inverse Dofs
-  std::vector<index_t> globalDofs, velocityDofs;
-  globalDofs = pmapper.getInverseDofs();
-  velocityDofs = velmapper.getInverseDofs();
-  index_t psize_true, vsize_true;
-  psize_true = globalDofs.size();
-  vsize_true = velocityDofs.size();
-
-  // Concatenate all dofs into into big vector
-  std::for_each(velocityDofs.begin(), velocityDofs.end(), [psize](index_t& dof){ dof += psize;});
-  globalDofs.insert(globalDofs.end(), velocityDofs.begin(), velocityDofs.end());
-  std::for_each(velocityDofs.begin(), velocityDofs.end(), [vsize](index_t& dof) { dof += vsize;});
-  globalDofs.insert(globalDofs.end(), velocityDofs.begin(), velocityDofs.end());
-
-  gsMatrix<> full_solution_true_dofs, full_solution_recreated_true_dofs;
-  full_solution_true_dofs.resize(globalDofs.size(), 1);
-  full_solution.submatrixRows(globalDofs, full_solution_true_dofs);
-  pressure_field.setSolutionVector(full_solution_true_dofs);
-  velocity_field.setSolutionVector(full_solution_true_dofs);
-
-  full_solution_recreated_true_dofs.resize(globalDofs.size(), 1);
-  full_solution_recreated.submatrixRows(globalDofs, full_solution_recreated_true_dofs);
-  pressure_field_recreated.setSolutionVector(full_solution_recreated_true_dofs);
-  velocity_field_recreated.setSolutionVector(full_solution_recreated_true_dofs);
+  // Intitalize multi-patch interfaces for pressure field
+  if (has_p_bc) {
+    pressure_trial_space.setup(pressure_bcs, dirichlet::l2Projection, 0);
+  } else {
+    pressure_trial_space.setup(0);
+  }
+  // Initialize interfaces and Dirichlet bcs for velocity field
+  velocity_trial_space.setup(velocity_bcs, dirichlet::l2Projection, 0);
 
   // Initialize the system
   expr_assembler.initSystem();
@@ -296,15 +285,15 @@ int main(int argc, char* argv[]) {
 
   // Workaround for velocity: get own solution field and only set respective entries
   // in the solution vector
-  gsMatrix<> full_velx_solution(globalDofs.size(), 1), full_vely_solution(globalDofs.size(), 1),
-            full_velx_rec_solution(globalDofs.size(), 1), full_vely_rec_solution(globalDofs.size(), 1);
-  for (index_t i = 0; i < vsize_true; i++) {
-    index_t xIndex = i+psize_true;
-    index_t yIndex = i + psize_true+vsize_true;
-    full_velx_solution[xIndex] = full_solution_true_dofs[xIndex];
-    full_velx_rec_solution[xIndex] = full_solution_recreated_true_dofs[xIndex];
-    full_vely_solution[yIndex] = full_solution_true_dofs[yIndex];
-    full_vely_rec_solution[yIndex] = full_solution_recreated_true_dofs[yIndex];
+  gsMatrix<> full_velx_solution(full_solution.size(), 1), full_vely_solution(full_solution.size(), 1),
+            full_velx_rec_solution(full_solution.size(), 1), full_vely_rec_solution(full_solution.size(), 1);
+  for (index_t i = 0; i < vsize; i++) {
+    index_t xIndex = i+psize;
+    index_t yIndex = i + psize+vsize;
+    full_velx_solution[xIndex] = full_solution[xIndex];
+    full_velx_rec_solution[xIndex] = full_solution_recreated[xIndex];
+    full_vely_solution[yIndex] = full_solution[yIndex];
+    full_vely_rec_solution[yIndex] = full_solution_recreated[yIndex];
   }
 
   solution velx_field = expr_assembler.getSolution(velocity_trial_space, full_velx_solution);
