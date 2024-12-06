@@ -307,26 +307,27 @@ int main(int argc, char* argv[]) {
   if (export_xml) {
     gsInfo << "Starting the xml export ..." << std::flush;
 
-    // Export pressure and velocity free DoFs in one matrix
-    gsFileData<> output_both;
-    output_both << full_solution;
-    output_both.save("both_fields.xml");
+    // Only export free Dofs
+    gsDofMapper pmapper = pressure_field.mapper();
+    gsDofMapper velmapper = velocity_field.mapper();
+    size_t psize, velsize;
+    psize = pmapper.freeSize();
+    velsize = velmapper.freeSize();
+    gsMatrix<> psolution, velsolution;
+    psolution.resize(psize,1);
+    velsolution.resize(velsize, 1);
 
-    // // Export pressure
-    // gsMatrix<> full_solution_pressure;
-    // gsFileData<> output_pressure;
-    // pressure_field.extractFull(
-    //     full_solution_pressure);  // patch-wise solution with BCs
-    // output_pressure << full_solution_pressure;
-    // output_pressure.save("pressure_field.xml");
-
-    // // Export velocity
-    // gsMatrix<> full_solution_velocity;
-    // gsFileData<> output;
-    // velocity_field.extractFull(
-    //     full_solution_velocity);  // patch-wise solution with BCs
-    // output << full_solution_velocity;
-    // output.save("velocity_field.xml");
+    for (index_t i = 0; i < psize; i++) {
+      psolution[i] = full_solution[i];
+    }
+    for (index_t i = 0; i < velsize; i++) {
+      velsolution[i] = full_solution[psize+i];
+    }
+    gsFileData<> output_pressure, output_velocity;
+    output_pressure << psolution;
+    output_velocity << velsolution;
+    output_pressure.save("pressure_field.xml");
+    output_velocity.save("velocity_field.xml");
 
     gsInfo << "\t\tFinished" << std::endl;
   }
