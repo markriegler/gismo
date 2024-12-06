@@ -1496,6 +1496,7 @@ public:
     /// val: perturbation value, j: global index, p: patch
     void perturbLocal(T val, index_t j, index_t p = 0)
     {
+        GISMO_UNUSED(p);
         // GISMO_ASSERT(1==_u.data().actives.cols(), "Single actives expected");
         //if (_u.mapper().is_free_index(j) )
         //{
