@@ -272,7 +272,7 @@ int main(int argc, char* argv[]) {
     (igrad(pressure_field) - igrad(pressure_field_recreated)).sqNorm() * meas(geoMap)
   ));
 
-  gsInfo << std::setprecision(16);
+  gsInfo << std::setprecision(24);
   gsInfo  << "Pressure:"
           << "\n\tL1        : " << l1error_pressure
           << "\n\tL2        : " << l2error_pressure
@@ -289,7 +289,7 @@ int main(int argc, char* argv[]) {
             full_velx_rec_solution(full_solution.size(), 1), full_vely_rec_solution(full_solution.size(), 1);
   for (index_t i = 0; i < vsize; i++) {
     index_t xIndex = i+psize;
-    index_t yIndex = i + psize+vsize;
+    index_t yIndex = i + psize+vsize/2;
     full_velx_solution[xIndex] = full_solution[xIndex];
     full_velx_rec_solution[xIndex] = full_solution_recreated[xIndex];
     full_vely_solution[yIndex] = full_solution[yIndex];
@@ -306,9 +306,12 @@ int main(int argc, char* argv[]) {
   solution error_velx = expr_assembler.getSolution(velocity_trial_space, velx_difference);
   solution error_vely = expr_assembler.getSolution(velocity_trial_space, vely_difference);
 
+  gsInfo << "After the error getSolutions\n";
+
   double l1error_velx = expression_evaluator.integral(
     abs(velx_field.val() - velx_rec_field.val()) * meas(geoMap)
   );
+  gsInfo << "After first error calculation\n";
   double l1error_rel_velx = expression_evaluator.integral(
     (abs(velx_field.val() - velx_rec_field.val()) / velx_field.val()) * meas(geoMap)
   );
@@ -341,6 +344,9 @@ int main(int argc, char* argv[]) {
   double l1error_vely = expression_evaluator.integral(
     abs(vely_field.val() - vely_rec_field.val()) * meas(geoMap)
   );
+  // double l1error_vely = expression_evaluator.integral(
+  //   (vely_field.val() - vely_rec_field.val()) * (vely_field.val() - vely_rec_field.val()) * meas(geoMap)
+  // );
   double l1error_rel_vely = expression_evaluator.integral(
     (abs(vely_field.val() - vely_rec_field.val()) / vely_field.val()) * meas(geoMap)
   );
@@ -362,6 +368,8 @@ int main(int argc, char* argv[]) {
 
   gsInfo  << "Velocity (y):"
           << "\n\tL1        : " << l1error_vely
+          // << "\n\tyolo      : " << expression_evaluator.integral(velx_rec_field.norm() * meas(geoMap))
+          // << "\n\tpressure  : " << expression_evaluator.integral(pressure_field_recreated * meas(geoMap))
           << "\n\tL2        : " << l2error_vely
           << "\n\tLinf      : " << linferror_vely
           << "\n\tH1        : " << h1error_vely
