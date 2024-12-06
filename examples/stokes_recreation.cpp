@@ -338,6 +338,38 @@ int main(int argc, char* argv[]) {
           << "\n\tLinf(rel.): " << linferror_rel_velx
           << '\n';
 
+  double l1error_vely = expression_evaluator.integral(
+    abs(vely_field.val() - vely_rec_field.val()) * meas(geoMap)
+  );
+  double l1error_rel_vely = expression_evaluator.integral(
+    (abs(vely_field.val() - vely_rec_field.val()) / vely_field.val()) * meas(geoMap)
+  );
+  double l2error_vely = math::sqrt(expression_evaluator.integral(
+    (vely_field - vely_rec_field).sqNorm() * meas(geoMap)
+  ));
+  double l2error_rel_vely = math::sqrt(expression_evaluator.integral(
+    ((vely_field - vely_rec_field) / vely_field.val()).sqNorm() * meas(geoMap)
+  ));
+  double linferror_vely = expression_evaluator.max(
+    abs(vely_field.val() - vely_rec_field.val())
+  );
+  double linferror_rel_vely = expression_evaluator.max(
+    abs(vely_field.val() - vely_rec_field.val()) / abs(vely_field.val())
+  );
+  double h1error_vely = l2error_vely + math::sqrt(expression_evaluator.integral(
+    (igrad(vely_field) - igrad(vely_rec_field)).sqNorm() * meas(geoMap)
+  ));
+
+  gsInfo  << "Velocity (y):"
+          << "\n\tL1        : " << l1error_vely
+          << "\n\tL2        : " << l2error_vely
+          << "\n\tLinf      : " << linferror_vely
+          << "\n\tH1        : " << h1error_vely
+          << "\n\tL1  (rel.): " << l1error_rel_vely
+          << "\n\tL2  (rel.): " << l2error_rel_vely
+          << "\n\tLinf(rel.): " << linferror_rel_vely
+          << '\n';
+
   //////////////////////////////
   // Export and Visualization //
   //////////////////////////////
