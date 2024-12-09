@@ -329,6 +329,18 @@ int main(int argc, char* argv[]) {
     output_pressure.save("pressure_field.xml");
     output_velocity.save("velocity_field.xml");
 
+    // Create pressure and velocity fields per patch
+    gsMatrix<> patch_pressure, patch_velocity;
+    gsFileData<> output_pressure_patches, output_velocity_patches;
+    for (int i = 0; i < domain_patches.nPatches(); i++) {
+      pressure_field.extract(patch_pressure, i);
+      velocity_field.extract(patch_velocity, i);
+      output_pressure_patches << patch_pressure;
+      output_velocity_patches << patch_velocity;
+    }
+    output_pressure_patches.save("pressure_field_patches.xml");
+    output_velocity_patches.save("velocity_field_patches.xml");
+
     gsInfo << "\t\tFinished" << std::endl;
   }
 
