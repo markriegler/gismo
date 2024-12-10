@@ -283,100 +283,100 @@ int main(int argc, char* argv[]) {
           << "\n\tLinf(rel.): " << linferror_rel_pressure
           << '\n';
 
-  // Workaround for velocity: get own solution field and only set respective entries
-  // in the solution vector
-  gsMatrix<> full_velx_solution(full_solution.size(), 1), full_vely_solution(full_solution.size(), 1),
-            full_velx_rec_solution(full_solution.size(), 1), full_vely_rec_solution(full_solution.size(), 1);
-  for (index_t i = 0; i < vsize; i++) {
-    index_t xIndex = i+psize;
-    index_t yIndex = i + psize+vsize/2;
-    full_velx_solution[xIndex] = full_solution[xIndex];
-    full_velx_rec_solution[xIndex] = full_solution_recreated[xIndex];
-    full_vely_solution[yIndex] = full_solution[yIndex];
-    full_vely_rec_solution[yIndex] = full_solution_recreated[yIndex];
-  }
+  // // Workaround for velocity: get own solution field and only set respective entries
+  // // in the solution vector
+  // gsMatrix<> full_velx_solution(full_solution.size(), 1), full_vely_solution(full_solution.size(), 1),
+  //           full_velx_rec_solution(full_solution.size(), 1), full_vely_rec_solution(full_solution.size(), 1);
+  // for (index_t i = 0; i < vsize; i++) {
+  //   index_t xIndex = i+psize;
+  //   index_t yIndex = i + psize+vsize/2;
+  //   full_velx_solution[xIndex] = full_solution[xIndex];
+  //   full_velx_rec_solution[xIndex] = full_solution_recreated[xIndex];
+  //   full_vely_solution[yIndex] = full_solution[yIndex];
+  //   full_vely_rec_solution[yIndex] = full_solution_recreated[yIndex];
+  // }
 
-  solution velx_field = expr_assembler.getSolution(velocity_trial_space, full_velx_solution);
-  solution velx_rec_field = expr_assembler.getSolution(velocity_trial_space, full_velx_rec_solution);
-  solution vely_field = expr_assembler.getSolution(velocity_trial_space, full_vely_solution);
-  solution vely_rec_field = expr_assembler.getSolution(velocity_trial_space, full_vely_rec_solution);
+  // solution velx_field = expr_assembler.getSolution(velocity_trial_space, full_velx_solution);
+  // solution velx_rec_field = expr_assembler.getSolution(velocity_trial_space, full_velx_rec_solution);
+  // solution vely_field = expr_assembler.getSolution(velocity_trial_space, full_vely_solution);
+  // solution vely_rec_field = expr_assembler.getSolution(velocity_trial_space, full_vely_rec_solution);
   
-  gsMatrix<> velx_difference = full_velx_solution - full_velx_rec_solution;
-  gsMatrix<> vely_difference = full_vely_solution - full_vely_rec_solution;
-  solution error_velx = expr_assembler.getSolution(velocity_trial_space, velx_difference);
-  solution error_vely = expr_assembler.getSolution(velocity_trial_space, vely_difference);
+  // gsMatrix<> velx_difference = full_velx_solution - full_velx_rec_solution;
+  // gsMatrix<> vely_difference = full_vely_solution - full_vely_rec_solution;
+  // solution error_velx = expr_assembler.getSolution(velocity_trial_space, velx_difference);
+  // solution error_vely = expr_assembler.getSolution(velocity_trial_space, vely_difference);
 
-  gsInfo << "After the error getSolutions\n";
+  // gsInfo << "After the error getSolutions\n";
 
-  double l1error_velx = expression_evaluator.integral(
-    abs(velx_field.val() - velx_rec_field.val()) * meas(geoMap)
-  );
-  gsInfo << "After first error calculation\n";
-  double l1error_rel_velx = expression_evaluator.integral(
-    (abs(velx_field.val() - velx_rec_field.val()) / velx_field.val()) * meas(geoMap)
-  );
-  double l2error_velx = math::sqrt(expression_evaluator.integral(
-    (velx_field - velx_rec_field).sqNorm() * meas(geoMap)
-  ));
-  double l2error_rel_velx = math::sqrt(expression_evaluator.integral(
-    ((velx_field - velx_rec_field) / velx_field.val()).sqNorm() * meas(geoMap)
-  ));
-  double linferror_velx = expression_evaluator.max(
-    abs(velx_field.val() - velx_rec_field.val())
-  );
-  double linferror_rel_velx = expression_evaluator.max(
-    abs(velx_field.val() - velx_rec_field.val()) / abs(velx_field.val())
-  );
-  double h1error_velx = l2error_velx + math::sqrt(expression_evaluator.integral(
-    (igrad(velx_field) - igrad(velx_rec_field)).sqNorm() * meas(geoMap)
-  ));
-
-  gsInfo  << "Velocity (x):"
-          << "\n\tL1        : " << l1error_velx
-          << "\n\tL2        : " << l2error_velx
-          << "\n\tLinf      : " << linferror_velx
-          << "\n\tH1        : " << h1error_velx
-          << "\n\tL1  (rel.): " << l1error_rel_velx
-          << "\n\tL2  (rel.): " << l2error_rel_velx
-          << "\n\tLinf(rel.): " << linferror_rel_velx
-          << '\n';
-
-  double l1error_vely = expression_evaluator.integral(
-    abs(vely_field.val() - vely_rec_field.val()) * meas(geoMap)
-  );
-  // double l1error_vely = expression_evaluator.integral(
-  //   (vely_field.val() - vely_rec_field.val()) * (vely_field.val() - vely_rec_field.val()) * meas(geoMap)
+  // double l1error_velx = expression_evaluator.integral(
+  //   abs(velx_field.val() - velx_rec_field.val()) * meas(geoMap)
   // );
-  double l1error_rel_vely = expression_evaluator.integral(
-    (abs(vely_field.val() - vely_rec_field.val()) / vely_field.val()) * meas(geoMap)
-  );
-  double l2error_vely = math::sqrt(expression_evaluator.integral(
-    (vely_field - vely_rec_field).sqNorm() * meas(geoMap)
-  ));
-  double l2error_rel_vely = math::sqrt(expression_evaluator.integral(
-    ((vely_field - vely_rec_field) / vely_field.val()).sqNorm() * meas(geoMap)
-  ));
-  double linferror_vely = expression_evaluator.max(
-    abs(vely_field.val() - vely_rec_field.val())
-  );
-  double linferror_rel_vely = expression_evaluator.max(
-    abs(vely_field.val() - vely_rec_field.val()) / abs(vely_field.val())
-  );
-  double h1error_vely = l2error_vely + math::sqrt(expression_evaluator.integral(
-    (igrad(vely_field) - igrad(vely_rec_field)).sqNorm() * meas(geoMap)
-  ));
+  // gsInfo << "After first error calculation\n";
+  // double l1error_rel_velx = expression_evaluator.integral(
+  //   (abs(velx_field.val() - velx_rec_field.val()) / velx_field.val()) * meas(geoMap)
+  // );
+  // double l2error_velx = math::sqrt(expression_evaluator.integral(
+  //   (velx_field - velx_rec_field).sqNorm() * meas(geoMap)
+  // ));
+  // double l2error_rel_velx = math::sqrt(expression_evaluator.integral(
+  //   ((velx_field - velx_rec_field) / velx_field.val()).sqNorm() * meas(geoMap)
+  // ));
+  // double linferror_velx = expression_evaluator.max(
+  //   abs(velx_field.val() - velx_rec_field.val())
+  // );
+  // double linferror_rel_velx = expression_evaluator.max(
+  //   abs(velx_field.val() - velx_rec_field.val()) / abs(velx_field.val())
+  // );
+  // double h1error_velx = l2error_velx + math::sqrt(expression_evaluator.integral(
+  //   (igrad(velx_field) - igrad(velx_rec_field)).sqNorm() * meas(geoMap)
+  // ));
 
-  gsInfo  << "Velocity (y):"
-          << "\n\tL1        : " << l1error_vely
-          // << "\n\tyolo      : " << expression_evaluator.integral(velx_rec_field.norm() * meas(geoMap))
-          // << "\n\tpressure  : " << expression_evaluator.integral(pressure_field_recreated * meas(geoMap))
-          << "\n\tL2        : " << l2error_vely
-          << "\n\tLinf      : " << linferror_vely
-          << "\n\tH1        : " << h1error_vely
-          << "\n\tL1  (rel.): " << l1error_rel_vely
-          << "\n\tL2  (rel.): " << l2error_rel_vely
-          << "\n\tLinf(rel.): " << linferror_rel_vely
-          << '\n';
+  // gsInfo  << "Velocity (x):"
+  //         << "\n\tL1        : " << l1error_velx
+  //         << "\n\tL2        : " << l2error_velx
+  //         << "\n\tLinf      : " << linferror_velx
+  //         << "\n\tH1        : " << h1error_velx
+  //         << "\n\tL1  (rel.): " << l1error_rel_velx
+  //         << "\n\tL2  (rel.): " << l2error_rel_velx
+  //         << "\n\tLinf(rel.): " << linferror_rel_velx
+  //         << '\n';
+
+  // double l1error_vely = expression_evaluator.integral(
+  //   abs(vely_field.val() - vely_rec_field.val()) * meas(geoMap)
+  // );
+  // // double l1error_vely = expression_evaluator.integral(
+  // //   (vely_field.val() - vely_rec_field.val()) * (vely_field.val() - vely_rec_field.val()) * meas(geoMap)
+  // // );
+  // double l1error_rel_vely = expression_evaluator.integral(
+  //   (abs(vely_field.val() - vely_rec_field.val()) / vely_field.val()) * meas(geoMap)
+  // );
+  // double l2error_vely = math::sqrt(expression_evaluator.integral(
+  //   (vely_field - vely_rec_field).sqNorm() * meas(geoMap)
+  // ));
+  // double l2error_rel_vely = math::sqrt(expression_evaluator.integral(
+  //   ((vely_field - vely_rec_field) / vely_field.val()).sqNorm() * meas(geoMap)
+  // ));
+  // double linferror_vely = expression_evaluator.max(
+  //   abs(vely_field.val() - vely_rec_field.val())
+  // );
+  // double linferror_rel_vely = expression_evaluator.max(
+  //   abs(vely_field.val() - vely_rec_field.val()) / abs(vely_field.val())
+  // );
+  // double h1error_vely = l2error_vely + math::sqrt(expression_evaluator.integral(
+  //   (igrad(vely_field) - igrad(vely_rec_field)).sqNorm() * meas(geoMap)
+  // ));
+
+  // gsInfo  << "Velocity (y):"
+  //         << "\n\tL1        : " << l1error_vely
+  //         // << "\n\tyolo      : " << expression_evaluator.integral(velx_rec_field.norm() * meas(geoMap))
+  //         // << "\n\tpressure  : " << expression_evaluator.integral(pressure_field_recreated * meas(geoMap))
+  //         << "\n\tL2        : " << l2error_vely
+  //         << "\n\tLinf      : " << linferror_vely
+  //         << "\n\tH1        : " << h1error_vely
+  //         << "\n\tL1  (rel.): " << l1error_rel_vely
+  //         << "\n\tL2  (rel.): " << l2error_rel_vely
+  //         << "\n\tLinf(rel.): " << linferror_rel_vely
+  //         << '\n';
 
   //////////////////////////////
   // Export and Visualization //
@@ -400,14 +400,31 @@ int main(int argc, char* argv[]) {
     );
     collection.addField(velocity_field, "velocity");
     collection.addField(velocity_field_recreated, "velocity (recreated)");
-    collection.addField(error_velx.norm(), "velocity_x (Error (abs.))");
-    collection.addField(error_velx.norm() / velx_field.val(), "velocity_x (Error (rel.))");
-    collection.addField(error_vely.norm(), "velocity_y (Error (abs.))");
-    collection.addField(error_vely.norm() / vely_field.val(), "velocity_y (Error (rel.))");
+    // collection.addField(error_velx.norm(), "velocity_x (Error (abs.))");
+    // collection.addField(error_velx.norm() / velx_field.val(), "velocity_x (Error (rel.))");
+    // collection.addField(error_vely.norm(), "velocity_y (Error (abs.))");
+    // collection.addField(error_vely.norm() / vely_field.val(), "velocity_y (Error (rel.))");
     collection.saveTimeStep();
     collection.save();
     gsInfo << "\tFinished" << std::endl;
   }
+
+  gsMatrix<> patch_pressure, patch_pressure_rec, patch_velocity, patch_velocity_rec;
+  gsFileData<> output_pressure, output_pressure_rec, output_velocity, output_velocity_rec;
+  for (int i = 0; i < domain_patches.nPatches(); i++) {
+    pressure_field.extract(patch_pressure, i);
+    velocity_field.extract(patch_velocity, i);
+    pressure_field_recreated.extract(patch_pressure_rec, i);
+    velocity_field_recreated.extract(patch_velocity_rec, i);
+    output_pressure << patch_pressure;
+    output_pressure_rec << patch_pressure_rec;
+    output_velocity << patch_velocity;
+    output_velocity_rec << patch_velocity_rec;
+  }
+  output_pressure.save("pressure_field_patches.xml");
+  output_velocity.save("velocity_field_patches.xml");
+  output_pressure_rec.save("pressure_field_rec_patches.xml");
+  output_velocity_rec.save("velocity_field_rec_patches.xml");
 
   return EXIT_SUCCESS;
 
