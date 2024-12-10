@@ -2,12 +2,15 @@ import splinepy as sp
 import numpy as np
 import xml.etree.ElementTree as ET
 from os import path
+from splinepy.helpme.integrate import _get_integral_measure, _get_quadrature_information
 
 DEGREE_ELEVATIONS = 1
-WDIR = "where/is/it"
-GEOMETRY_FILE = "where/is/it"
-PRESSURE_FILE = path.join(WDIR, "pressure_field.xml")
-VELOCITY_FILE = path.join(WDIR, "velocity_field.xml")
+WDIR = "--------------------------------------"
+GEOMETRY_FILE = "-----------------------------"
+PRESSURE_FILE = path.join(WDIR, "pressure_field_patches.xml")
+VELOCITY_FILE = path.join(WDIR, "velocity_field_patches.xml")
+PRESSURE_REC_FILE = path.join(WDIR, "pressure_field_rec_patches.xml")
+VELOCITY_REC_FILE = path.join(WDIR, "velocity_field_rec_patches.xml")
 
 common_show_options = {
     "cmap": "jet",
@@ -16,6 +19,52 @@ common_show_options = {
     "control_points": False,
     "knots": False,
 }
+
+# Define error norm calculations
+l1func = lambda orig, rec: np.abs(orig - rec)
+l2func = lambda orig, rec: np.power(orig-rec, 2)
+l1relfunc = lambda orig, rec: np.abs((orig-rec) / orig)
+l2relfunc = lambda orig, rec: np.abs(np.power(orig-rec, 2) / orig)
+norm_funcs = {
+    "l1": l1func,
+    "l2": l2func,
+    "l1_rel": l1relfunc,
+    "l2_rel": l2relfunc
+}
+
+def integrate(bezier, field):
+    """Integrate field over Bezier patch"""
+    meas = _get_integral_measure(bezier)
+    quad_positions, quad_weights = _get_quadrature_information(
+        bezier, orders=None
+    )
+    result = np.einsum(
+        "i...,i,i->...",
+        field.evaluate(quad_positions),
+        meas(bezier, quad_positions),
+        quad_weights,
+        optimize=True
+    )
+    return result
+
+def integrate_multipatch(multipatch, fields):
+    """Integrate field over multipatch geometry"""
+    integration_sum = 0.0
+    for patch, field_patch in zip(multipatch.patches, fields):
+        integration_sum += integrate(patch, field_patch)
+    return integration_sum
+
+def compute_integral_error(multipatch, fields_original, fields_recreated, norm="l2"):
+    fields_error = []
+    for patch, field_orig, field_recreated in zip(multipatch.patches, fields_original, fields_recreated):
+        field_error = patch.copy()
+        field_error.cps = norm_funcs[norm](field_orig, field_recreated)
+        fields_error.append(field_error)
+    error_integral = integrate_multipatch(multipatch, fields_error)
+    if norm == "l2" or norm == "l2_rel":
+        return np.sqrt(error_integral)
+    else:
+        return error_integral
 
 # Load XML file to numpy array
 def get_solution_vectors(file_path, two_dimensional=False):
@@ -85,6 +134,8 @@ if __name__ == "__main__":
     # Get solution vector for pressure and velocity
     pressure_data = get_solution_vectors(file_path=PRESSURE_FILE)
     velocity_data = get_solution_vectors(file_path=VELOCITY_FILE, two_dimensional=True)
+    pressure_rec_data = get_solution_vectors(file_path=PRESSURE_REC_FILE)
+    velocity_rec_data = get_solution_vectors(file_path=VELOCITY_REC_FILE, two_dimensional=True)
     
     # Load the geometry
     microstructure, ms_vel = load_geometry(GEOMETRY_FILE, degree_elevations=DEGREE_ELEVATIONS)
@@ -92,3 +143,31 @@ if __name__ == "__main__":
     # Show pressure and velocity field
     show_multipatch_field(microstructure, pressure_data, data_name="pressure")
     show_multipatch_field(ms_vel, velocity_data, data_name="velocity")
+    
+    # Compute errors
+    norms = list(norm_funcs.keys())
+    error_values = []
+    print("-"*80)
+    print("Pressure")
+    for norm in norms:
+        error_value = compute_integral_error(
+            multipatch=microstructure,
+            fields_original=pressure_data,
+            fields_recreated=pressure_rec_data,
+            norm=norm
+        )
+        error_values.append(error_value)
+        print(norm, error_value)
+        
+    print("-"*80)
+    print("Velocity")
+    error_values = []
+    for norm in norms:
+        error_value = compute_integral_error(
+            multipatch=ms_vel,
+            fields_original=velocity_data,
+            fields_recreated=velocity_rec_data,
+            norm=norm
+        )
+        error_values.append(error_value)
+        print(norm, error_value)
