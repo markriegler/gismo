@@ -16,24 +16,24 @@
 #include <gsCore/gsForwardDeclarations.h>
 #include <gsMSplines/gsMappedBasis.h>   // Only to make linker happy
 #include <gsCore/gsDofMapper.h>         // Only to make linker happy
-#include <gsAssembler/gsExprHelper.h>  
+#include <gsAssembler/gsExprHelper.h>
 #include <gsAssembler/gsExprEvaluator.h>
 #include <gsIO/gsIOUtils.h>
 
 #include<fstream>
 
-namespace gismo 
+namespace gismo
 {
 /**
     \brief This class represents a group  of vtk (Paraview) files
     that refer to one multiPatch, for one timestep.
 
-    This class is used by gsParaviewCollection to manage said files, 
+    This class is used by gsParaviewCollection to manage said files,
     but can be used by the user explicitly as well.
 
     \ingroup IO
 */
-class GISMO_EXPORT gsParaviewDataSet // a collection of .vts files 
+class GISMO_EXPORT gsParaviewDataSet // a collection of .vts files
 {
 private:
     std::string m_basename;
@@ -42,14 +42,14 @@ private:
     gsExprEvaluator<real_t> * m_evaltr;
     gsOptionList m_options;
     bool m_isSaved;
-    
+
 public:
     /// @brief Basic constructor
     /// @param basename The basename that will be used to create all the individual filenames
     /// @param geometry A gsMultiPatch of the geometry that will be exported and where the fields are defined
     /// @param eval Optional. A gsExprEvaluator, necessary when working with gsExpressions for evaluation purposes
     /// @param options A set of options, if unspecified, defaultOptions() is called.
-    gsParaviewDataSet(std::string basename, 
+    gsParaviewDataSet(std::string basename,
                       gsMultiPatch<real_t> * const geometry,
                       gsExprEvaluator<real_t> * eval=nullptr,
                       gsOptionList options=defaultOptions());
@@ -60,9 +60,9 @@ public:
                         m_options(defaultOptions()),
                         m_isSaved(false)
                         {}
-                   
+
     /// @brief Evaluates an expression, and writes that data to the vtk files.
-    /// @tparam E 
+    /// @tparam E
     /// @param expr The gsExpression to be evaluated
     /// @param label The name that will be displayed in Paraview for this field.
     template <class E>
@@ -94,21 +94,21 @@ public:
     }
 
     // Just here to stop the recursion
-    void addFields(std::vector<std::string>){ } 
+    void addFields(std::vector<std::string>){ }
 
 
     /// @brief Recursive form of addField()
-    /// @tparam E 
-    /// @tparam ...Rest 
+    /// @tparam E
+    /// @tparam ...Rest
     /// @param labels Vector of strings, containing the names of the fields as they will be shown in ParaView.
     /// @param expr The expressions to be evaluated ( arbitrary number of them )
-    /// @param ...rest 
+    /// @param ...rest
     template <class E, typename... Rest>
     void addFields(std::vector<std::string> labels, const expr::_expr<E> & expr, Rest... rest) {
-        // keep all but first label 
+        // keep all but first label
         GISMO_ENSURE( sizeof...(Rest) == labels.size() - 1, "The length of labels must match the number of expressions provided" );
         std::vector<std::string> newlabels(labels.cbegin()+1, labels.cend());
-        
+
 
         addField(   expr, labels[0]);       // Add the expression 'expr' with it's corresponding label ( first one )
         addFields(   newlabels, rest...);   // Recursion
@@ -151,16 +151,16 @@ public:
     }
 
     /// @brief Recursive form of addField()
-    /// @tparam T 
-    /// @tparam ...Rest 
+    /// @tparam T
+    /// @tparam ...Rest
     /// @param labels Vector of strings, containing the names of the fields as they will be shown in ParaView.
     /// @param field The gsFields to be evaluated ( arbitrary number of them )
-    /// @param ...rest 
+    /// @param ...rest
     template <class T, typename... Rest>
     void addFields(std::vector<std::string> labels, const gsField<T> field, Rest... rest) {
-        // keep all but first label 
+        // keep all but first label
         std::vector<std::string> newlabels(labels.cbegin()+1, labels.cend());
-        
+
         addField(   field, labels[0]);       // Add the expression 'expr' with it's corresponding label ( first one )
         addFields(   newlabels, rest...);   // Recursion
     }
@@ -194,7 +194,7 @@ public:
 
 private:
     /// @brief  Evaluates gsFunctionSet over all pieces( patches ) and returns all <DataArray> xml tags as a vector of strings
-    /// @tparam T 
+    /// @tparam T
     /// @param funSet gsFunctionSet to be evaluated
     /// @param nPts   Number of evaluation points, per patch.
     /// @param precision Number of decimal points in xml output
@@ -382,6 +382,8 @@ private:
              } else if (std::is_same<T, double>::value) {
                  return std::string("Float64");
              }
+             else
+                GISMO_ERROR("Unspported floating point type requested");
          }();
 
          // Write data to vector to ensure it is 3D :/
