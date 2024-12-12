@@ -85,7 +85,14 @@ def get_solution_vectors(file_path, two_dimensional=False):
 
     return solution_vectors
 
-def show_multipatch_field(mp, solution_vectors, data_name="solution"):
+def show_multipatch_field(
+    mp,
+    solution_vectors,
+    data_name="solution",
+    output_file=None,
+    vmin=None,
+    vmax=None
+):
     """
     Show a field defined on a multipatch
     
@@ -95,6 +102,8 @@ def show_multipatch_field(mp, solution_vectors, data_name="solution"):
         Multipatch geometry object
     solution_vectors: list<np.ndarray>
         List of patch solution vectors
+    data_name: str
+        Name for field (e.g. velocity)
     """
     assert isinstance(solution_vectors, list), "Solution vectors have to be a list"
     assert len(mp.patches) == len(solution_vectors), "Mismatch between number of patches and patch solution vectors"
@@ -104,9 +113,20 @@ def show_multipatch_field(mp, solution_vectors, data_name="solution"):
         data_patch.cps = sv
         spline_data_list.append(data_patch)
         mp_patch.spline_data[data_name] = spline_data_list[-1]
+        mp_patch.show_options(data=data_name, **common_show_options)
     data_mp = sp.Multipatch(splines=spline_data_list)
     mp.spline_data[data_name] = data_mp
     mp.show_options(data=data_name, **common_show_options)
+    if output_file is not None:
+        assert isinstance(output_file, str), "Output file must be a string"
+        assert vmin is not None and vmax is not None, "vmin and vmax must be given for scalarbar"
+        sp.io.svg.export(
+            output_file,
+            mp.patches,
+            scalarbar=True,
+            vmin=vmin,
+            vmax=vmax
+        )
     mp.show()
     
 def load_geometry(filename, degree_elevations=0):
@@ -142,7 +162,14 @@ if __name__ == "__main__":
     
     # Show pressure and velocity field
     show_multipatch_field(microstructure, pressure_data, data_name="pressure")
-    show_multipatch_field(ms_vel, velocity_data, data_name="velocity")
+    show_multipatch_field(
+        ms_vel,
+        velocity_data,
+        data_name="velocity",
+        output_file="velocity_field.svg",
+        vmin=0.0,           # Caution: vmin and vmax for scalarbar are hardcoded right now
+        vmax=0.00119
+    )
     
     # Compute errors
     norms = list(norm_funcs.keys())
