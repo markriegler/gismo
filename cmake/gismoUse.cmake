@@ -102,6 +102,7 @@ MACRO(ALLSUBDIRS result curdir)
   SET(${result} ${dirlist})
 ENDMACRO(ALLSUBDIRS)
 
+# list all subdirectories of the current directory starting with gs
 MACRO(SUBDIRLIST result curdir)
   FILE(GLOB children RELATIVE ${curdir} ${curdir}/gs*)
   SET(dirlist "")
