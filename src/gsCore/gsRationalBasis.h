@@ -215,7 +215,7 @@ public:
         typename SourceBasis::GeometryType tmp(*m_src,give(m_weights));
         tmp.degreeElevate(i,dir);
         tmp.coefs().swap(m_weights);
-        std::swap(*m_src, tmp.basis() );
+        m_src->swap(tmp.basis());
     }
 
     // todo (HV): test!!
@@ -224,7 +224,7 @@ public:
         typename SourceBasis::GeometryType tmp(*m_src, give(m_weights));
         tmp.degreeIncrease(i,dir);
         tmp.coefs().swap(m_weights);
-        std::swap(*m_src, tmp.basis() );
+        m_src->swap(tmp.basis());
     }
 
     void degreeReduce(short_t const& i = 1, short_t const dir = -1)
@@ -232,7 +232,7 @@ public:
         typename SourceBasis::GeometryType tmp(*m_src, give(m_weights));
         tmp.degreeReduce(i,dir);
         tmp.coefs().swap(m_weights);
-        std::swap(*m_src, tmp.basis() );
+        m_src->swap(tmp.basis());
     }
 
     void degreeDecrease(short_t const& i = 1, short_t const dir = -1)
@@ -240,7 +240,7 @@ public:
         typename SourceBasis::GeometryType tmp(*m_src, give(m_weights));
         tmp.degreeDecrease(i,dir);
         tmp.coefs().swap(m_weights);
-        std::swap(*m_src, tmp.basis() );
+        m_src->swap(tmp.basis());
     }
 
     /* if ever be reused, change to actual and current GISMO_UPTR_FUNCTION stuff und uPtr
