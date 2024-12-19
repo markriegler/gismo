@@ -1049,6 +1049,7 @@ void gsFitting<T>::parameterCorrection(T accuracy,
                                        index_t maxIter,
                                        T tolOrth)
 {
+    GISMO_UNUSED(tolOrth);
     if ( !m_result )
         compute(m_last_lambda);
 
