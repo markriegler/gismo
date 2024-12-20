@@ -19,6 +19,7 @@ namespace gismo
 
 template<short_t d,class T>
 gsMappedBasis<d,T>::gsMappedBasis( const gsMappedBasis& other )
+: gsFunctionSet<T>(other)
 {
     m_topol = other.m_topol;
     // clone all geometries
@@ -363,7 +364,7 @@ void gsMappedBasis<d,T>::deriv2Single_into(const index_t patch, const index_t gl
 
 template<short_t d,class T>
 void gsMappedBasis<d,T>::evalAllDers_into(const index_t patch, const gsMatrix<T> & u,
-                                             const index_t n, std::vector<gsMatrix<T> >& result) const
+                                          const index_t n, std::vector<gsMatrix<T> >& result, bool sameElement) const
 {
     gsMatrix<index_t> bact;
     m_bases[patch]->active_into(u, bact);
@@ -375,7 +376,7 @@ void gsMappedBasis<d,T>::evalAllDers_into(const index_t patch, const gsMatrix<T>
     gsMatrix<T> map;//r:B,c:C
     m_mapper->getLocalMap(act0, act, map);
 
-    m_bases[patch]->evalAllDers_into(u, n, result);
+    m_bases[patch]->evalAllDers_into(u, n, result, sameElement);
     index_t       nr = result.front().rows();
     const index_t nc = result.front().cols();
     result.front() = map.transpose() * result.front();
@@ -482,6 +483,22 @@ index_t gsMappedBasis<d,T>::_getPatch(const index_t localIndex) const
             break;
     }
     return patch;
+}
+
+template<short_t d,class T>
+index_t gsMappedBasis<d,T>::getGlobalIndex(index_t patch, index_t localIndex)
+{
+    GISMO_ASSERT(patch>=0 && patch<m_bases.size(),"patch index out of range");
+    return _getLocalIndex(patch, localIndex);
+}
+
+template<short_t d,class T>
+gsMatrix<index_t> gsMappedBasis<d,T>::getGlobalIndex(index_t patch, gsMatrix<index_t> localIndices)
+{
+    GISMO_ASSERT(patch>=0 && patch<m_bases.size(),"patch index out of range");
+    gsMatrix<index_t> globalIndices(localIndices);
+    globalIndices.array() += _getFirstLocalIndex(patch);
+    return globalIndices;
 }
 
 template<short_t d,class T>

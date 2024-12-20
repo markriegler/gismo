@@ -165,8 +165,7 @@ public:
     index_t size() const { return m_knots.size() - m_p - 1 - m_periodic; }
 
     // Look at gsBasis class for a description
-    size_t numElements() const { return m_knots.numElements(); }
-    using Base::numElements; //unhide
+    size_t numElements(boxSide const & s = 0) const { return (0==s?m_knots.numElements():1); }
 
     // Look at gsBasis class for a description
     size_t elementIndex(const gsVector<T> & u ) const;
@@ -312,7 +311,8 @@ public:
 
     // Look at gsBasis class for a description
     virtual void evalAllDers_into(const gsMatrix<T> & u, int n,
-                                  std::vector<gsMatrix<T> >& result) const;
+                                  std::vector<gsMatrix<T> >& result,
+                                  bool sameElement = false) const;
 
     // Look at gsBasis class for a description
     GISMO_DEPRECATED
@@ -401,7 +401,7 @@ public:
 
     // Look at gsBasis class for a description
     void uniformRefine(int numKnots = 1, int mul=1, int dir=-1)
-    { m_knots.uniformRefine(numKnots,mul); }
+    { GISMO_UNUSED(dir); m_knots.uniformRefine(numKnots,mul); }
 
     // Look at gsBasis class for a description
     void uniformRefine_withCoefs(gsMatrix<T>& coefs, int numKnots = 1, int mul=1, int dir=-1);
@@ -419,9 +419,11 @@ public:
     /// @brief Refine the basis by inserting the given knots and perform knot
     /// refinement for the given coefficient matrix.
     void refine_withCoefs(gsMatrix<T>& coefs, const std::vector<T>& knots);
+    void refine_withCoefs(gsMatrix<T>& /* coefs */, const gsMatrix<T> & /* boxes */)
+    {GISMO_NO_IMPLEMENTATION}
 
     // compatibility with tensor-bsplines
-    void refine_withCoefs(gsMatrix<T> & coefs, 
+    void refine_withCoefs(gsMatrix<T> & coefs,
                           const std::vector< std::vector<T> >& refineKnots)
     {
         refine_withCoefs(coefs,refineKnots.front() );
@@ -429,8 +431,9 @@ public:
 
     /// @brief Refine the basis by inserting the given knots and produce a sparse matrix which maps coarse coefficient vectors to refined ones.
     void refine_withTransfer(gsSparseMatrix<T,RowMajor> & transfer, const std::vector<T>& knots);
-
-    void refine_withTransfer(gsSparseMatrix<T,RowMajor> & transfer, 
+    void refine_withTransfer(gsMatrix<T>& /* coefs */, const gsMatrix<T> & /* boxes */)
+    {GISMO_NO_IMPLEMENTATION}
+    void refine_withTransfer(gsSparseMatrix<T,RowMajor> & transfer,
                              const std::vector<std::vector<T> >& knots)
     {
         GISMO_ASSERT(knots.size()==1, "the knots you want to insert do not have the right dimension");
@@ -598,6 +601,10 @@ public:
     // Look at gsBasis class for a description
     void reverse() { m_knots.reverse(); }
 
+    void matchWith(const boundaryInterface &, const gsBasis<T> &,
+                   gsMatrix<index_t> &, gsMatrix<index_t> &, index_t) const { }
+
+    
     void matchWith(const boundaryInterface & bi,
                    const gsBasis<T> & other,
                    gsMatrix<index_t> & bndThis,
@@ -765,6 +772,53 @@ public:
         
         if( ! this->check() )
             gsWarn << "Warning: Insconsistent "<< *this<< "\n";
+    }
+
+    using gsBasis<T>::create; //unhide from gsBasis
+
+    static typename gsBasis<T>::uPtr create(KnotVectorType KV, short_t dim)
+    {
+        typedef typename gsBasis<T>::uPtr basisPtr;
+
+        switch (dim)
+        {
+        case 1:
+            return basisPtr(new gsBSplineBasis<T>(give(KV)));
+            break;
+        case 2:
+            return basisPtr(new gsTensorBSplineBasis<2,T>(give(KV),give(KV)));
+            break;
+        case 3:
+            return basisPtr(new gsTensorBSplineBasis<3,T>(give(KV),give(KV),give(KV)));
+            break;
+        case 4:
+            return basisPtr(new gsTensorBSplineBasis<4,T>(give(KV),give(KV),give(KV),give(KV)));
+            break;
+        }
+        GISMO_ERROR("Dimension should be between 1 and 4.");
+    }
+
+    static typename gsBasis<T>::uPtr create(std::vector<KnotVectorType> cKV)
+    {
+        typedef typename gsBasis<T>::uPtr basisPtr;
+
+        const index_t dd = cKV.size();
+        switch (dd)
+        {
+        case 1:
+            return basisPtr(new gsBSplineBasis<T>(give(cKV)));
+            break;
+        case 2:
+            return basisPtr(new gsTensorBSplineBasis<2,T>(give(cKV)));
+            break;
+        case 3:
+            return basisPtr(new gsTensorBSplineBasis<3,T>(give(cKV)));
+            break;
+        case 4:
+            return basisPtr(new gsTensorBSplineBasis<4,T>(give(cKV)));
+            break;
+        }
+        GISMO_ERROR("Dimension should be between 1 and 4.");
     }
 
 /*

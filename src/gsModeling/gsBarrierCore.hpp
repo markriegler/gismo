@@ -111,9 +111,9 @@ T gsBarrierCore<d, T>::computeAreaInterior(const gsMultiPatch<T> &multiPatch) {
 }
 
 template<short_t d, typename T>
-T gsBarrierCore<d, T>::computeAreaBoundary(const gsMultiPatch<T> &mp) {
-  GISMO_ERROR("Not implemented");
-  return -1;
+T gsBarrierCore<d, T>::computeAreaBoundary(const gsMultiPatch<T> &)
+{
+    GISMO_ERROR("NO_IMPLEMENTATION");
 }
 
 enum class ParamMethod {
@@ -1401,6 +1401,8 @@ class ternary_expr : public _expr<ternary_expr<E0, E1, E2> > {
 
   const gsFeSpace<Scalar> &rowVar() const { return _v.rowVar(); }
   const gsFeSpace<Scalar> &colVar() const { return _v.colVar(); }
+
+    void print(std::ostream &os) const { os << "ternary"; }
 
   /// Split needed for Temporary_t return type
 // private:
