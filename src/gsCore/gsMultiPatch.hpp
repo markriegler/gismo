@@ -1020,6 +1020,7 @@ std::map< std::array<size_t, 4>, internal::ElementBlock> gsMultiPatch<T>::Bezier
     for (size_t p=0; p<nPatches(); ++p)
     {
         gsBasis<T> * basis = & patch(p).basis();
+        // index_t NN; // Number of control points of the Bezier element // @hverhelst this is not used anywhere
 
         // Create the Bezier Basis
         gsKnotVector<T> kv1;
@@ -1036,7 +1037,7 @@ std::map< std::array<size_t, 4>, internal::ElementBlock> gsMultiPatch<T>::Bezier
         typename gsNewtonCotesRule<T>::uPtr QuRule;
         QuRule = gsNewtonCotesRule<T>::make(numNodes);
 
-        // Initialize an iterator over all the elements of the given basi
+        // Initialize an iterator over all the elements of the given basis
         typename gsBasis<T>::domainIter domIt = basis->makeDomainIterator();
 
 
@@ -1059,7 +1060,7 @@ std::map< std::array<size_t, 4>, internal::ElementBlock> gsMultiPatch<T>::Bezier
             key[1] = basis->degree(0);
             key[2] = basis->degree(1);
             key[3] = 0; // TODO: if implemented for trivariates fix this
-            NN = localActives.size();
+            // NN = localActives.size(); // @hverhelst: this is not used anywhere
             ElementBlocks[key].numElements += 1;                  // Increment the Number of Elements contained in the ElementBlock
             ElementBlocks[key].actives.push_back(globalActives);  // Append the active basis functions ( = the Node IDs ) for this element.
             ElementBlocks[key].PR = basis->degree(0);
