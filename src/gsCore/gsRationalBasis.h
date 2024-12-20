@@ -138,8 +138,7 @@ public:
 
     int size(int const& k) const{ return m_src->size(k); }
 
-    size_t numElements() const { return m_src->numElements(); }
-    size_t numElements(boxSide const & s) const { return m_src->numElements(s); }
+    size_t numElements(boxSide const & s = 0) const { return m_src->numElements(s); }
     //using Base::numElements; //unhide
 
     /// See \ref gsBasis for a description
@@ -147,12 +146,12 @@ public:
 
     void active_into(const gsMatrix<T> & u, gsMatrix<index_t>& result) const
     { m_src->active_into(u, result); }
-    
+
     virtual const gsBasis<T> & component(short_t i) const { return m_src->component(i); }
     using Base::component;
 
     gsMatrix<index_t> allBoundary( ) const {return m_src->allBoundary(); }
-    
+
     gsMatrix<index_t> boundaryOffset(boxSide const & s, index_t offset ) const
     { return m_src->boundaryOffset(s,offset); }
 
@@ -179,6 +178,13 @@ public:
     void uniformRefine_withCoefs(gsMatrix<T>& coefs, int numKnots = 1,  int mul=1, int dir=-1);
 
     void uniformRefine_withTransfer(gsSparseMatrix<T,RowMajor> & transfer, int numKnots = 1, int mul=1);
+
+    /// See \ref gsBasis
+    void refine(gsMatrix<T> const & boxes, int refExt = 0)
+    {
+        GISMO_UNUSED(refExt);
+        m_src->refine_withCoefs( m_weights, boxes );
+    }
 
     /**
      * @brief Refines specified areas or boxes, depending on underlying basis.
@@ -264,17 +270,17 @@ public:
     { return m_src->connectivity(nodes, mesh); }
 
     gsMatrix<T> support() const {return m_src->support(); }
-    
+
     gsMatrix<T> support(const index_t & i) const {return m_src->support(i); }
-    
+
     void eval_into(const gsMatrix<T> & u, gsMatrix<T>& result) const;
-    
+
     void evalSingle_into(index_t i, const gsMatrix<T> & u, gsMatrix<T>& result) const ;
 
     void evalFunc_into(const gsMatrix<T> & u, const gsMatrix<T> & coefs, gsMatrix<T>& result) const;
 
     //void evalAllDers_into(const gsMatrix<T> & u, int n,
-    //                      std::vector<gsMatrix<T> >& result) const;
+    //                      std::vector<gsMatrix<T> >& result, bool sameElement = false) const;
 
     void deriv_into(const gsMatrix<T> & u, gsMatrix<T>& result ) const ;
 
@@ -292,7 +298,7 @@ public:
 
     /// Returns the weights of the rational basis
     gsMatrix<T> & weights()  { return m_weights; }
-    
+
 
     /// Returns true, since by definition a gsRationalBasis is rational.
     virtual bool isRational() const { return true;}
@@ -311,12 +317,13 @@ public:
     }
 
     virtual void matchWith(const boundaryInterface & bi, const gsBasis<T> & other,
-                           gsMatrix<index_t> & bndThis, gsMatrix<index_t> & bndOther) const
-    { 
+                           gsMatrix<index_t> & bndThis, gsMatrix<index_t> & bndOther,
+                           index_t offset = 0) const
+    {
         if ( const gsRationalBasis * _other = dynamic_cast<const gsRationalBasis*>(&other) )
-            m_src->matchWith(bi,*_other->m_src,bndThis,bndOther);
+            m_src->matchWith(bi,*_other->m_src,bndThis,bndOther, offset);
         else
-            m_src->matchWith(bi,other,bndThis,bndOther);
+            m_src->matchWith(bi,other,bndThis,bndOther, offset);
     }
 
     /// Returns a matrix of projective coefficients. The input \a
@@ -379,8 +386,8 @@ protected:
 
 template<class SrcT>
 void gsRationalBasis<SrcT>::evalSingle_into(index_t i, const gsMatrix<T> & u, gsMatrix<T>& result) const
-{ 
-    m_src->evalSingle_into(i, u, result);  
+{
+    m_src->evalSingle_into(i, u, result);
     result.array() *= m_weights.at(i);
     gsMatrix<T> denom;
     m_src->evalFunc_into(u, m_weights, denom);
@@ -433,13 +440,13 @@ void gsRationalBasis<SrcT>::evalFunc_into(const gsMatrix<T> & u, const gsMatrix<
 /* TODO
 template<class SrcT>
 void gsRationalBasis<SrcT>::evalAllDers_into(const gsMatrix<T> & u, int n,
-                                             std::vector<gsMatrix<T> >& result) const
+                                             std::vector<gsMatrix<T> >& result, bool sameElement = false) const
 {
     result.resize(n+1);
 
     std::vector<gsMatrix<T> > ev(n+1);
 
-    m_src->evalAllDers_into(u, n, ev);
+    m_src->evalAllDers_into(u, n, ev, sameElement);
 
     // find active basis functions
     gsMatrix<index_t> act;
@@ -597,6 +604,7 @@ void gsRationalBasis<SrcT>::uniformRefine_withCoefs(gsMatrix<T>& coefs, int numK
     GISMO_ASSERT( coefs.rows() == this->size() && m_weights.rows() == this->size(),
                   "Invalid dimensions" );
     gsSparseMatrix<T, RowMajor> transfer;
+    GISMO_ENSURE(-1==dir, "!!");
     m_src->uniformRefine_withTransfer(transfer, numKnots, mul);
 
     coefs     = transfer * ( m_weights.asDiagonal() * coefs);
