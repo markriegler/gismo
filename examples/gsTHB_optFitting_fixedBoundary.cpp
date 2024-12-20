@@ -29,6 +29,7 @@
 
 using namespace gismo;
 
+// Function to scale the input points in [0,1]^3
 template<class T>
 void scalePoints(const gsMatrix<T> & xyz,
                  gsMatrix<T> & points)
@@ -39,7 +40,6 @@ void scalePoints(const gsMatrix<T> & xyz,
 
   points.resize(xyz.rows(), xyz.cols());
   points = (1/den)*(xyz - p_min * gsMatrix<T>::Ones(xyz.rows(), xyz.cols()));
-  gsWriteParaviewPoints(points, "scaled_points");
 }
 
 
@@ -85,19 +85,11 @@ void sortPointCloud(gsMatrix<T> & parameters,
     }
   }
 
-  // gsInfo << "There are " << interiors.size() << " interior points.\n";
-  // gsDebugVar(interiors.size());
+  
   corners.push_back(interiors.size()); // c1
-  // gsInfo << "There are " << b_south.size() << " south points.\n";
-  // gsDebugVar(interiors.size() + b_south.size());
   corners.push_back(interiors.size() + b_south.size()); // c2
-  // gsInfo << "There are " << b_east.size() << " east points.\n";
-  // gsDebugVar(interiors.size() + b_south.size() + b_east.size());
   corners.push_back(interiors.size() + b_south.size() + b_east.size()); // c3
-  // gsInfo << "There are " << b_north.size() << " north points.\n";
-  // gsDebugVar(interiors.size() + b_south.size() + b_east.size() + b_north.size());
   corners.push_back(interiors.size() + b_south.size() + b_east.size() + b_north.size()); // c4
-  // gsInfo << "There are " << b_west.size() << " west points.\n";
 
   uv_interiors.resize(2, interiors.size());
   p_interiors.resize(3, interiors.size());
@@ -202,21 +194,6 @@ void sortPointCloud(gsMatrix<T> & parameters,
   }
   uv_west.transposeInPlace();
 
-
-  // gsWriteParaviewPoints(uv_interiors, "uv_interiors");
-  // gsWriteParaviewPoints(p_interiors, "p_interiors");
-  //
-  // gsWriteParaviewPoints(uv_west, "uv_west");
-  // gsWriteParaviewPoints(tmp_west, "p_west");
-  //
-  // gsWriteParaviewPoints(uv_east, "uv_east");
-  // gsWriteParaviewPoints(tmp_east, "p_east");
-  //
-  // gsWriteParaviewPoints(uv_south, "uv_south");
-  // gsWriteParaviewPoints(tmp_south, "p_south");
-  //
-  // gsWriteParaviewPoints(uv_north, "uv_north");
-  // gsWriteParaviewPoints(tmp_north, "p_north");
 
   // reordering of the input point cloud (parameters and points)
   parameters.resize(uv_interiors.rows(), points.cols());

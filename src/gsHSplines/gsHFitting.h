@@ -131,6 +131,13 @@ public:
                        index_t maxPcIter = 0,
                        bool admissibleRef = false);
 
+    /**
+     * @brief nextIteration_tdm One step of the refinement, compuiting the coefficients with TDM and Parameter Correction;
+     * @param tolerance (>=0) if the maximum error is below the tolerance the refinement stops;
+     * @param err_threshold the same as in iterative_refine(...).
+     * @param interpIdx is the index of the boundary points to compute with PDM;
+     * @param admissibleRef if true, the refinement is admissible.
+     */
     bool nextIteration_tdm(T tolerance, T err_threshold, index_t maxPcIter, T mu, T sigma, const std::vector<index_t> & interpIdx, tdm_method method, bool admissibleRef = false);
     bool nextIteration_tdm(T tolerance, T err_threshold,
                           const std::vector<boxSide>& fixedSides,
@@ -140,6 +147,13 @@ public:
                           tdm_method method,
                           bool admissibleRef);
 
+    /**
+     * @brief nextIteration_pdm One step of the refinement, compuiting the coefficients with PDM and Parameter Correction;
+     * @param tolerance (>=0) if the maximum error is below the tolerance the refinement stops;
+     * @param err_threshold the same as in iterative_refine(...).
+     * @param interpIdx is the index of the boundary points to compute with PDM;
+     * @param admissibleRef if true, the refinement is admissible.
+     */
     bool nextIteration_pdm(T tolerance, T err_threshold, index_t maxPcIter, const std::vector<index_t> & interpIdx, bool admissibleRef = false);
     bool nextIteration_pdm(T tolerance, T err_threshold,
                           const std::vector<boxSide>& fixedSides,
@@ -202,6 +216,13 @@ protected:
             boxes.push_back(box[col]);
     }
 
+    /**
+    * @brief getMarkedHBoxesFromBasis_max: returns the markd cells to refine admissibiliy.
+    * @param basis: the THB basis from which we extract the elements of the domain
+    * @param error: the pointwise parameter error
+    * @param parameters: the sites on which the point-wise error is computed
+    * @param threshold: the threshold to mark for refinement.
+    */
     gsHBoxContainer<d> getMarkedHBoxesFromBasis_max(const gsHTensorBasis<d,T>& basis,
                                                     const std::vector<T>& errors,
                                                     const gsMatrix<T>& parameters,
@@ -660,7 +681,7 @@ void gsHFitting<d, T>::appendBox(std::vector<index_t>& boxes,
     }
 }
 
-
+/// Check if a cell is already inserted in (the refinement) container of cells 
 template <short_t d, class T>
 bool gsHFitting<d, T>::isCellAlreadyInserted(const gsVector<index_t, d>& a_cell,
                                              const std::vector<index_t>& cells)
@@ -686,6 +707,7 @@ bool gsHFitting<d, T>::isCellAlreadyInserted(const gsVector<index_t, d>& a_cell,
     return false;
 }
 
+// Automatic set of the refinement threshold
 template<short_t d, class T>
 T gsHFitting<d, T>::setRefineThreshold(const std::vector<T>& errors )
 {
@@ -699,7 +721,7 @@ T gsHFitting<d, T>::setRefineThreshold(const std::vector<T>& errors )
 
 
 
-
+/// Check if a point is inside a cell
 template <class T>
 bool is_point_inside_cell(const gsMatrix<T>& parameter,
                           const gsMatrix<T>& element)
@@ -711,6 +733,7 @@ bool is_point_inside_cell(const gsMatrix<T>& parameter,
            element(1, 0) <= y && y < element(1, 1);
 }
 
+/// Check if a point is inside a cell
 template <class T>
 bool is_point_inside_cell(const T x,
                           const T y,
@@ -721,7 +744,7 @@ bool is_point_inside_cell(const T x,
 }
 
 
-
+/// Returns the maximum error at the parameters inside the a cell
 template<class T>
 T getCellMaxError(const gsMatrix<T>& a_cell,
                   const std::vector<T>& errors,
@@ -747,11 +770,6 @@ T getCellMaxError(const gsMatrix<T>& a_cell,
 }
 
 
-/// returns the markd cells to refine admissibiliy.
-// input      basis: the THB basis from which we extract the elements of the domain
-// input      error: the pointwise parameter error
-// input parameters: the sites on which the point-wise error is computed
-// input  threshold: the threshold to mark for refinement.
 template <short_t d, class T>
 gsHBoxContainer<d> gsHFitting<d, T>::getMarkedHBoxesFromBasis_max(const gsHTensorBasis<d,T>& basis,
                                                 const std::vector<T>& errors,
@@ -773,7 +791,6 @@ gsHBoxContainer<d> gsHFitting<d, T>::getMarkedHBoxesFromBasis_max(const gsHTenso
               domHIt = dynamic_cast<gsHDomainIterator<T,2> *>(domIt.get());
               gsHBox<d> a_box(domHIt);
               gsHBoxContainer<d> tmp(gsHBoxUtils<d,T>::markAdmissible(a_box,extension));
-              // gsHBoxContainer<2> tmp(gsHBoxUtils<2,real_t>::markAdmissible(cell,m));
               markedHBoxes.add(tmp);
             }
         }
