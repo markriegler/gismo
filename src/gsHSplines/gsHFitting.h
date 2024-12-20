@@ -623,6 +623,9 @@ std::vector<index_t> gsHFitting<d, T>::getBoxes(const std::vector<T>& errors,
     return boxes;
 }
 
+
+
+/// Appends a box around parameter to the boxes only if the box is not already in boxes
 template <short_t d, class T>
 void gsHFitting<d, T>::appendBox(std::vector<index_t>& boxes,
                                   std::vector<index_t>& cells,
