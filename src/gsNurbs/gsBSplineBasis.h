@@ -315,6 +315,7 @@ public:
                                   std::vector<gsMatrix<T> >& result) const;
 
     // Look at gsBasis class for a description
+    GISMO_DEPRECATED
     virtual void evalAllDersSingle_into(index_t i, const gsMatrix<T> & u,
                                         int n, gsMatrix<T>& result) const;
 
@@ -323,7 +324,7 @@ public:
     {
         GISMO_UNUSED(i);
         GISMO_ASSERT(i==0,"Asked for degree(i) in 1D basis.");
-        return m_p; 
+        return m_p;
     }
 
     short_t degree() const {return m_p;}
