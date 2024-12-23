@@ -403,10 +403,10 @@ public:
     { GISMO_UNUSED(dir); m_knots.uniformRefine(numKnots,mul); }
 
     // Look at gsBasis class for a description
-    void uniformRefine_withCoefs(gsMatrix<T>& coefs, int numKnots = 1, int mul=1, int dir=-1);
+    void uniformRefine_withCoefs(gsMatrix<T>& coefs, int numKnots = 1, int mul = 1, short_t const dir = -1);
 
     // Look at gsBasis class for a description
-    void uniformRefine_withTransfer(gsSparseMatrix<T,RowMajor> & transfer, int numKnots = 1, int mul=1);
+    void uniformRefine_withTransfer(gsSparseMatrix<T,RowMajor> & transfer, int numKnots = 1, int mul = 1);
     
     // Look at gsBasis class for a description
     void uniformCoarsen(int numKnots = 1)

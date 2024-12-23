@@ -273,12 +273,12 @@ gsMatrix<T> gsMultiPatch<T>::pointOn( const patchSide& ps )
 }
 
 template<class T>
-void gsMultiPatch<T>::uniformRefine(int numKnots, int mul)
+void gsMultiPatch<T>::uniformRefine(int numKnots, int mul, short_t const dir)
 {
     for ( typename PatchContainer::const_iterator it = m_patches.begin();
           it != m_patches.end(); ++it )
     {
-        ( *it )->uniformRefine(numKnots, mul);
+        ( *it )->uniformRefine(numKnots, mul, dir);
     }
 }
 
