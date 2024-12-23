@@ -12,6 +12,9 @@ namespace gismo
 CLASS_TEMPLATE_INST internal::gsXml< gsKnotVector<real_t> >;
 
 #ifdef GISMO_WITH_PYBIND11
+
+namespace py = pybind11;
+
 void pybind11_init_gsKnotVector(py::module &m)
 {
   typedef gsKnotVector<real_t>::mult_t mult_t;
