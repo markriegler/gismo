@@ -20,9 +20,9 @@ if(SPHINX_FOUND)
 
   add_custom_target(
     doc-pygismo
-    COMMAND sphinx-build -b html -d ${CMAKE_CURRENT_BINARY_DIR}/doctrees . ${CMAKE_CURRENT_BINARY_DIR}/html
+    COMMAND sphinx-build -b html -d ${CMAKE_CURRENT_BINARY_DIR}/doctrees . ${gismo_BINARY_DIR}/doc/html/pygismo
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMENT "Generating pygismo-doc: ${gismo_BINARY_DIR}/doc/pygismo/html/index.html" VERBATIM
+    COMMENT "Generating pygismo-doc: ${gismo_BINARY_DIR}/doc/html/pygismo/index.html" VERBATIM
     )
 
   add_dependencies(doc doc-pygismo)
