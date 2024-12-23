@@ -494,7 +494,7 @@ void gsMultiPatch<T>::fixOrientation()
           it != m_patches.end(); ++it )
         if ( -1 == (*it)->orientation() )
             (*it)->toggleOrientation();
-    
+
     if (this->nInterfaces() || this->nBoundary() )
         this->computeTopology();
 }
@@ -1030,7 +1030,7 @@ std::map< std::array<size_t, 4>, internal::ElementBlock> gsMultiPatch<T>::Bezier
         gsTensorBSplineBasis<2,T> bezBasis(kv1,kv2);
         gsMatrix<> res;
 
-        // Initialize the quadrature rule that will be used for fitting 
+        // Initialize the quadrature rule that will be used for fitting
         // the given basis with the Bezier basis
         gsVector<index_t, 2> numNodes;
         numNodes << basis->degree(0)+1, basis->degree(1)+1 ;
@@ -1069,7 +1069,7 @@ std::map< std::array<size_t, 4>, internal::ElementBlock> gsMultiPatch<T>::Bezier
 
             // Map the quadrature points to the current element.
             QuRule->mapTo( domIt->lowerCorner(), domIt->upperCorner(), quPoints, quWeights);
-            basis->source().eval_into(quPoints, values); // Evaluate given basis at the mapped quadrature points 
+            basis->source().eval_into(quPoints, values); // Evaluate given basis at the mapped quadrature points
             // Append the local Bezier Extraction matrix to the ElementBlock.coefVectors
             ElementBlocks[key].coefVectors.push_back(solver.solve(values.transpose()).transpose());
         }
@@ -1079,7 +1079,7 @@ std::map< std::array<size_t, 4>, internal::ElementBlock> gsMultiPatch<T>::Bezier
 }
 
 
-template<class T> 
+template<class T>
 gsMultiPatch<T> gsMultiPatch<T>::extractBezier() const
 {
     GISMO_ENSURE( 2==domainDim(), "Anything other than bivariate splines is not yet supported!");
@@ -1096,7 +1096,7 @@ gsMultiPatch<T> gsMultiPatch<T>::extractBezier() const
     globalWeights.setOnes();
 
     // Loop over all patches
-    for (index_t p = 0; p != this->nPatches(); p++)
+    for (size_t p = 0; p != this->nPatches(); p++)
     {
         for (index_t i=0; i != this->patch(p).coefs().rows(); ++i) // For every control point
         {
@@ -1111,7 +1111,7 @@ gsMultiPatch<T> gsMultiPatch<T>::extractBezier() const
     {
         internal::ElementBlock ElBlock = pair.second;
 
-        gsKnotVector<> kv1(0,1,0,ElBlock.PR+1); 
+        gsKnotVector<> kv1(0,1,0,ElBlock.PR+1);
         gsKnotVector<> kv2(0,1,0,ElBlock.PS+1);
         // coefs.setZero( (ElBlock.PR+1)*(ElBlock.PS+1), controlPoints.cols()-1 );
 
@@ -1143,6 +1143,6 @@ gsMultiPatch<T> gsMultiPatch<T>::extractBezier() const
     }
 
     // result.computeTopology();
-    return result; 
+    return result;
 }
 } // namespace gismo
