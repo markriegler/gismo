@@ -785,13 +785,13 @@ public:
             return basisPtr(new gsBSplineBasis<T>(give(KV)));
             break;
         case 2:
-            return basisPtr(new gsTensorBSplineBasis<2,T>(give(KV),give(KV)));
+            return basisPtr(new gsTensorBSplineBasis<2,T>(KV,KV));
             break;
         case 3:
-            return basisPtr(new gsTensorBSplineBasis<3,T>(give(KV),give(KV),give(KV)));
+            return basisPtr(new gsTensorBSplineBasis<3,T>(KV,KV,KV));
             break;
         case 4:
-            return basisPtr(new gsTensorBSplineBasis<4,T>(give(KV),give(KV),give(KV),give(KV)));
+            return basisPtr(new gsTensorBSplineBasis<4,T>(KV,KV,KV,KV));
             break;
         }
         GISMO_ERROR("Dimension should be between 1 and 4.");
