@@ -15,9 +15,14 @@ find_program(SPHINX_BUILD NAMES sphinx-build sphinx-build.exe)
 
 if(SPHINX_BUILD)
 
+    configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/conf.py.in
+    ${CMAKE_CURRENT_BINARY_DIR}/conf.py
+    )
+
   add_custom_target(
     doc-pygismo
-    COMMAND ${SPHINX_BUILD} -b html -d ${CMAKE_CURRENT_BINARY_DIR}/doctrees . ${gismo_BINARY_DIR}/doc/html/pygismo
+    COMMAND ${SPHINX_BUILD} -c ${CMAKE_CURRENT_BINARY_DIR} -b html -d ${CMAKE_CURRENT_BINARY_DIR}/doctrees . ${gismo_BINARY_DIR}/doc/html/pygismo
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMENT "Generating pygismo-doc: ${gismo_BINARY_DIR}/doc/html/pygismo/index.html" VERBATIM
     )
