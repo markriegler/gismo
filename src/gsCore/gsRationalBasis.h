@@ -170,14 +170,14 @@ public:
     // Look at gsBasis class for a description
     short_t totalDegree() const     {return m_src->totalDegree(); }
 
-    void uniformRefine(int numKnots = 1, int mul=1, int dir=-1)
+    void uniformRefine(int numKnots = 1, int mul = 1, short_t const dir = -1)
     {
         m_src->uniformRefine_withCoefs(m_weights, numKnots, mul, dir);
     }
 
-    void uniformRefine_withCoefs(gsMatrix<T>& coefs, int numKnots = 1,  int mul=1, int dir=-1);
+    void uniformRefine_withCoefs(gsMatrix<T>& coefs, int numKnots = 1,  int mul = 1, short_t const dir = -1);
 
-    void uniformRefine_withTransfer(gsSparseMatrix<T,RowMajor> & transfer, int numKnots = 1, int mul=1);
+    void uniformRefine_withTransfer(gsSparseMatrix<T,RowMajor> & transfer, int numKnots = 1, int mul = 1);
 
     /// See \ref gsBasis
     void refine(gsMatrix<T> const & boxes, int refExt = 0)
@@ -215,7 +215,7 @@ public:
         typename SourceBasis::GeometryType tmp(*m_src,give(m_weights));
         tmp.degreeElevate(i,dir);
         tmp.coefs().swap(m_weights);
-        std::swap(*m_src, tmp.basis() );
+        m_src->swap(tmp.basis());
     }
 
     // todo (HV): test!!
@@ -224,7 +224,7 @@ public:
         typename SourceBasis::GeometryType tmp(*m_src, give(m_weights));
         tmp.degreeIncrease(i,dir);
         tmp.coefs().swap(m_weights);
-        std::swap(*m_src, tmp.basis() );
+        m_src->swap(tmp.basis());
     }
 
     void degreeReduce(short_t const& i = 1, short_t const dir = -1)
@@ -232,7 +232,7 @@ public:
         typename SourceBasis::GeometryType tmp(*m_src, give(m_weights));
         tmp.degreeReduce(i,dir);
         tmp.coefs().swap(m_weights);
-        std::swap(*m_src, tmp.basis() );
+        m_src->swap(tmp.basis());
     }
 
     void degreeDecrease(short_t const& i = 1, short_t const dir = -1)
@@ -240,7 +240,7 @@ public:
         typename SourceBasis::GeometryType tmp(*m_src, give(m_weights));
         tmp.degreeDecrease(i,dir);
         tmp.coefs().swap(m_weights);
-        std::swap(*m_src, tmp.basis() );
+        m_src->swap(tmp.basis());
     }
 
     /* if ever be reused, change to actual and current GISMO_UPTR_FUNCTION stuff und uPtr
