@@ -202,18 +202,6 @@ public:
         m_src->refineElements_withCoefs( m_weights, boxes );
     }
 
-    /**
-     * @brief      { function_description }
-     *
-     * @param      boxes   The boxes
-     * @param[in]  refExt  The reference extent
-     */
-
-    void refine(gsMatrix<T> const & boxes, int refExt = 0)
-    {
-        // m_src->refine_withCoefs(m_weights, boxes, refExt);
-    }
-
 
     /**
      * @brief Refines specified areas or boxes, depending on underlying basis.
