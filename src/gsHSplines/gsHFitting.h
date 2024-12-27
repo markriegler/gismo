@@ -8,7 +8,7 @@
     License, v. 2.0. If a copy of the MPL was not distributed with this
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-    Author(s): C. Giannelli, G. Kiss
+    Author(s): C. Giannelli, G. Kiss, S. Imperatore, A. Mantzaflaris, D. Mokriš
 */
 
 #pragma once
@@ -85,7 +85,6 @@ public:
 
 public:
 
-    // void updateGeometry(gsMatrix<T> coefficients, gsMatrix<T> parameters);
     /**
      * @brief iterative_refine iteratively refine the basis
      *
@@ -109,15 +108,7 @@ public:
     bool nextIteration(T tolerance, T err_threshold, index_t maxPcIter = 0);
 
     bool nextRefinement(T tolerance, T err_threshold, index_t maxPcIter = 0, bool admissibleRef = false);
-    /**
-     * @brief nextIteration_tdm One step of the refinement of iterative_refine(...);
-     * @param tolerance (>=0) if the maximum error is below the tolerance the refinement stops;
-     * @param err_threshold the same as in iterative_refine(...).
-     * @param mu is the amount of PDM, to be set between 0.1 and 1;
-     * @param sigma is the amount of TDM, to be set to 1;
-     */
-
-
+    
     /**
      * @brief Like \a nextIteration without \a fixedSides but keeping the values
      * on these sides unchanged throughout the fit.
@@ -132,7 +123,7 @@ public:
                        bool admissibleRef = false);
 
     /**
-     * @brief nextIteration_tdm One step of the refinement, compuiting the coefficients with TDM and Parameter Correction;
+     * @brief nextIteration_tdm One step of the refinement, compuiting the coefficients with HDM and boundary constraints;
      * @param tolerance (>=0) if the maximum error is below the tolerance the refinement stops;
      * @param err_threshold the same as in iterative_refine(...).
      * @param interpIdx is the index of the boundary points to compute with PDM;
@@ -250,15 +241,12 @@ protected:
     using gsFitting<T>::m_min_error;
 };
 
-// template<short_t d, class T>
-// void gsHFitting<d, T>::updateGeometry(gsMatrix<T> coefficients,
-//                                      gsMatrix<T> parameters)
-// {
-//   this->m_result->coefs() = coefficients;
-//   this->m_param_values = parameters;
-//   this->computeErrors();
-// }
-
+/**
+* @brief nextIteration: perform one iterazion of adaptive refinement for PDM fitting, without boundary constraints
+* @param tolerance: error tolerance 
+* @param err_threshold: error threshold for refinement
+* @param maxPcIter: maximum number of parameter correction
+**/
 template<short_t d, class T>
 bool gsHFitting<d, T>::nextIteration(T tolerance, T err_threshold,
                                      index_t maxPcIter)
@@ -267,6 +255,16 @@ bool gsHFitting<d, T>::nextIteration(T tolerance, T err_threshold,
     return nextIteration(tolerance, err_threshold, dummy, maxPcIter);
 }
 
+/**
+* @brief nextIteration_tdm: perform one iterazion of adaptive refinement for HDM fitting with boundary constraints
+* @param err_threshold: error threshold for refinement
+* @param maxPcIter: maximum number of parameter correction
+* @param mu: amount of PDM
+* @param sigma: amount of TDM
+* @param interpIdx: index of the boundary points to compute with PDM
+* @param method: method to compute the TDM
+* @param admissibleRef: if true, the refinement is admissible
+**/
 template<short_t d, class T>
 bool gsHFitting<d, T>::nextIteration_tdm(T tolerance, T err_threshold,
                                          index_t maxPcIter, T mu, T sigma,
@@ -278,7 +276,13 @@ bool gsHFitting<d, T>::nextIteration_tdm(T tolerance, T err_threshold,
     return nextIteration_tdm(tolerance, err_threshold, dummy, maxPcIter, mu, sigma, interpIdx, method, admissibleRef);
 }
 
-
+/**
+* @brief nextIteration_pdm: perform one iterazion of adaptive refinement for PDM fitting with boundary constratints
+* @param err_threshold: error threshold for refinement
+* @param maxPcIter: maximum number of parameter correction
+* @param interpIdx: index of the boundary points to compute with PDM
+* @param admissibleRef: if true, the refinement is admissible
+**/
 template<short_t d, class T>
 bool gsHFitting<d, T>::nextIteration_pdm(T tolerance, T err_threshold,
                                          index_t maxPcIter,
@@ -289,7 +293,13 @@ bool gsHFitting<d, T>::nextIteration_pdm(T tolerance, T err_threshold,
     return nextIteration_pdm(tolerance, err_threshold, dummy, maxPcIter, interpIdx, admissibleRef);
 }
 
-
+/**
+* @brief nextRefinement: perform one iterazion of adaptive refinement for PDM fitting
+* @param tolerance: error tolerance
+* @param err_threshold: error threshold for refinement
+* @param maxPcIter: maximum number of parameter correction
+* @param admissibleRef: if true, the refinement is admissible
+ */
 template<short_t d, class T>
 bool gsHFitting<d, T>::nextRefinement(T tolerance, T err_threshold, index_t maxPcIter, bool admissibleRef)
 {
@@ -305,7 +315,6 @@ bool gsHFitting<d, T>::nextIteration(T tolerance, T err_threshold,
 {
     // INVARIANT
     // look at iterativeRefine
-
     if ( m_pointErrors.size() != 0 )
     {
 
@@ -313,7 +322,6 @@ bool gsHFitting<d, T>::nextIteration(T tolerance, T err_threshold,
         {
             // if err_treshold is -1 we refine the m_ref percent of the whole domain
             T threshold = (err_threshold >= 0) ? err_threshold : setRefineThreshold(m_pointErrors);
-            gsInfo << threshold << "\n";
             std::vector<index_t> boxes = getBoxes(m_pointErrors, threshold);
             if(boxes.size()==0)
                 return false;
@@ -324,31 +332,29 @@ bool gsHFitting<d, T>::nextIteration(T tolerance, T err_threshold,
             // If there are any fixed sides, prescribe the coefs in the finer basis.
             if(m_result != NULL && fixedSides.size() > 0)
             {
-                gsDebugVar(fixedSides.size());
                 m_result->refineElements(boxes);
                 gsFitting<T>::setConstraints(fixedSides);
             }
-            gsDebug << "inserted " << boxes.size() / (2 * d + 1) << " boxes.\n";
         }
         else
         {
-            gsDebug << "Tolerance reached.\n";
             return false;
         }
     }
 
-    // We run one fitting step and compute the errors
+    // SOLVE one fitting step and compute the errors
     this->compute(m_lambda);
 
-    //parameter correction
+    //parameter correction without boudary constraints
     this->parameterCorrection(1e-7, maxPcIter, 1e-4);//closestPoint accuracy, orthogonality tolerance
 
+    // ESTIMATES the point-wise approximation error
     this->computeErrors();
 
     return true;
 }
 
-
+// perform one iterazion of adaptive refinement for PDM fitting with boundary constratints
 template<short_t d, class T>
 bool gsHFitting<d, T>::nextIteration_pdm(T tolerance, T err_threshold,
                                         const std::vector<boxSide>& fixedSides,
@@ -356,7 +362,6 @@ bool gsHFitting<d, T>::nextIteration_pdm(T tolerance, T err_threshold,
                                         const std::vector<index_t>& interpIdx,
                                         bool admissibleRef)
 {
-    // INVARIANT
     // look at iterativeRefine
     if ( m_pointErrors.size() != 0 )
     {
@@ -372,13 +377,11 @@ bool gsHFitting<d, T>::nextIteration_pdm(T tolerance, T err_threshold,
 
             if (admissibleRef)
             {
-                gsInfo << "ADMISSIBLE REFINEMENT.\n";
                 markedRef = getMarkedHBoxesFromBasis_max(*basis, m_pointErrors, m_param_values, threshold, 2.);
                 boxes = markedRef.toRefBoxes();
             }
             else
             {
-                gsInfo << "STANDARD REFINEMENT.\n";
                 boxes = getBoxes(m_pointErrors, threshold);
             }
 
@@ -391,30 +394,23 @@ bool gsHFitting<d, T>::nextIteration_pdm(T tolerance, T err_threshold,
             // If there are any fixed sides, prescribe the coefs in the finer basis.
             if(m_result != NULL && fixedSides.size() > 0)
             {
-                gsDebugVar(fixedSides.size());
                 m_result->refineElements(boxes);
                 gsFitting<T>::setConstraints(fixedSides);
             }
-            gsDebug << "inserted " << boxes.size() / (2 * d + 1) << " boxes.\n";
         }
         else
         {
-            gsInfo << "Tolerance reached.\n";
             return false;
         }
     }
 
-    // We run one fitting step and compute the errors
-    //this->compute(m_lambda);
-
-    gsInfo << "compute...\n";
+    // SOLVE one PDM fitting step
     this->compute(m_lambda);
-    // m_results->coefs() = coefs_tilde;
+    
+    //spply maxPcIter parameter correction steps separating interior and boundary points
+    this->parameterCorrectionSepBoundary_pdm(1e-6, maxPcIter,interpIdx);//closestPoint accuracy, orthogonality tolerance
 
-    //parameter correction
-    gsInfo << "apply " << maxPcIter << " steps of parameter correction for pdm...\n";
-    // this->parameterCorrection_tdm(1e-7, maxPcIter, mu, sigma, interpIdx);
-    this->parameterCorrectionSepBoundary_pdm(1e-6, maxPcIter,interpIdx);
+    // ESTIMATE the point-wise approximation error
     this->computeErrors();
 
     return true;
@@ -422,7 +418,7 @@ bool gsHFitting<d, T>::nextIteration_pdm(T tolerance, T err_threshold,
 
 
 
-
+// perform one iterazion of adaptive refinement for HDM fitting with boundary constraints
 template<short_t d, class T>
 bool gsHFitting<d, T>::nextIteration_tdm(T tolerance, T err_threshold,
                                         const std::vector<boxSide>& fixedSides,
@@ -431,12 +427,8 @@ bool gsHFitting<d, T>::nextIteration_tdm(T tolerance, T err_threshold,
                                         tdm_method method,
                                         bool admissibleRef)
 {
-
-    time_t now = time(0);
-
     if ( m_pointErrors.size() != 0 )
     {
-    gsDebugVar(m_pointErrors.size());
 
     gsHBoxContainer<2> markedRef;
     std::vector<index_t> boxes;
@@ -446,19 +438,17 @@ bool gsHFitting<d, T>::nextIteration_tdm(T tolerance, T err_threshold,
       // if err_treshold is -1 we refine the m_ref percent of the whole domain
       T threshold = (err_threshold >= 0) ? err_threshold : setRefineThreshold(m_pointErrors);
 
-      // REFINE
+      // MARK
       gsHTensorBasis<d, T>* basis = static_cast<gsHTensorBasis<d,T> *> (this->m_basis);
 
-      // MARK
+      // MARK-ADMISSIBLE
       if (admissibleRef)
       {
-        gsInfo << "ADMISSIBLE REFINEMENT.\n";
         markedRef = getMarkedHBoxesFromBasis_max(*basis, m_pointErrors, m_param_values, threshold, 2.);
         boxes = markedRef.toRefBoxes();
       }
       else
       {
-        gsInfo << "STANDARD REFINEMENT.\n";
         boxes = getBoxes(m_pointErrors, threshold);
       }
 
@@ -471,34 +461,30 @@ bool gsHFitting<d, T>::nextIteration_tdm(T tolerance, T err_threshold,
       // If there are any fixed sides, prescribe the coefs in the finer basis.
       if(m_result != NULL && fixedSides.size() > 0)
         {
-          gsDebugVar(fixedSides.size());
           m_result->refineElements(boxes);
           gsFitting<T>::setConstraints(fixedSides);
         }
-            gsDebug << "inserted " << boxes.size() / (2 * d + 1) << " boxes.\n";
     }
     else
     {
-      gsInfo << "Tolerance reached.\n";
       return false;
     }
     }
 
-    // SOLVE
+    // SOLVE one HDM fitting step
     this->compute_tdm(m_lambda, mu, sigma, interpIdx, method);
 
 
-    // PARAMETER CORRECTION
-    gsInfo << "apply "<< maxPcIter << " steps of parameter correction for tdm...\n";
+    // apply maxPcIter parameter correction steps separating interior and boundary points
     this->parameterCorrectionSepBoundary_tdm(1e-6, maxPcIter, mu, sigma, interpIdx, method); // refit
 
-    // ESTIMATE
+    // ESTIMATE the point-wise approximation error
     this->computeErrors();
 
     return true;
 }
 
-
+// perform one iterazion of adaptive refinement for PDM fitting, without boudary constraints
 template<short_t d, class T>
 bool gsHFitting<d, T>::nextRefinement(T tolerance, T err_threshold,
                                       const std::vector<boxSide>& fixedSides,
@@ -538,16 +524,12 @@ bool gsHFitting<d, T>::nextRefinement(T tolerance, T err_threshold,
 
             if(m_result != NULL && fixedSides.size() > 0)
             {
-              gsInfo << "Constrained fitting of Dominik.\n";
-                gsDebugVar(fixedSides.size());
                 m_result->refineElements(boxes);
                 gsFitting<T>::setConstraints(fixedSides);
             }
-            gsDebug << "inserted " << boxes.size() / (2 * d + 1) << " boxes.\n";
         }
         else
         {
-            gsInfo << "Tolerance reached.\n";
             return false;
         }
         // const gsBasis<T> * bb = dynamic_cast<const gsBasis<T> *>(m_basis);
@@ -556,7 +538,6 @@ bool gsHFitting<d, T>::nextRefinement(T tolerance, T err_threshold,
     }
     else
     {
-      gsInfo << "First fitting: compute with LS.\n";
       this->compute(m_lambda);
     }
 
@@ -567,10 +548,7 @@ bool gsHFitting<d, T>::nextRefinement(T tolerance, T err_threshold,
 }
 
 
-
-
-
-
+// perform one iterazion of adaptive refinement for PDM fitting, without boudary constraints
 template<short_t d, class T>
 void gsHFitting<d, T>::iterativeRefine(int numIterations, T tolerance, T err_threshold)
 {
@@ -590,12 +568,10 @@ void gsHFitting<d, T>::iterativeRefine(int numIterations, T tolerance, T err_thr
         newIteration = nextIteration( tolerance, err_threshold );
         if( m_max_error <= tolerance )
         {
-            gsDebug << "Tolerance reached at iteration: " << i << "\n";
             break;
         }
         if( !newIteration )
         {
-            gsDebug << "No more Boxes to insert at iteration: " << i << "\n";
             break;
         }
     }
@@ -622,8 +598,6 @@ std::vector<index_t> gsHFitting<d, T>::getBoxes(const std::vector<T>& errors,
 
     return boxes;
 }
-
-
 
 /// Appends a box around parameter to the boxes only if the box is not already in boxes
 template <short_t d, class T>
@@ -722,8 +696,6 @@ T gsHFitting<d, T>::setRefineThreshold(const std::vector<T>& errors )
 }
 
 
-
-
 /// Check if a point is inside a cell
 template <class T>
 bool is_point_inside_cell(const gsMatrix<T>& parameter,
@@ -772,7 +744,7 @@ T getCellMaxError(const gsMatrix<T>& a_cell,
     return cell_max_err;
 }
 
-
+// returns the markd cells to refine admissibiliy.
 template <short_t d, class T>
 gsHBoxContainer<d> gsHFitting<d, T>::getMarkedHBoxesFromBasis_max(const gsHTensorBasis<d,T>& basis,
                                                 const std::vector<T>& errors,
@@ -799,12 +771,6 @@ gsHBoxContainer<d> gsHFitting<d, T>::getMarkedHBoxesFromBasis_max(const gsHTenso
         }
     return markedHBoxes;
 }
-
-
-
-
-
-
 
 }// namespace gismo
 
