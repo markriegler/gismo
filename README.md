@@ -32,17 +32,15 @@
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/JuliaBinaryWrappers/gismo_jll.jl/total?label=Downloads%20(gismo_jll)&color=008A00)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/gismo/Gismo.jl/total?label=Downloads%20(Gismo.jl)&color=008A00)
 
+---
 
 # Continuous Integration status
 | **System** | **Status** | **More information** |
 |------------|------------|----------------------|
-| [CDash](https://cdash-ci.irisa.fr/index.php?project=Gismo) | [![cdash](https://img.shields.io/website?down_color=lightgrey&down_message=offline&label=CDash&up_color=green&up_message=up&url=https%3A%2F%2Fcdash-ci.irisa.fr%2Findex.php%3Fproject%3DGismo)](https://cdash-ci.irisa.fr/index.php?project=Gismo) | Report results from all builds |
-| [Appveyor](https://ci.appveyor.com/project/gismo/gismo)  | [![Appveyor status](https://ci.appveyor.com/api/projects/status/abps59xbt1gjwci1/branch/stable?svg=true)](https://cdash-ci.irisa.fr/index.php?project=Gismo&filtercount=1&field1=site&compare1=63&value1=[appVeyor]) | Windows MSVC 14.0 |
-| [Circle CI](https://circleci.com/gh/gismo/gismo) | [![Circle CI](https://circleci.com/gh/gismo/gismo.svg?style=svg)](https://cdash-ci.irisa.fr/index.php?project=Gismo&filtercount=1&field1=site&compare1=63&value1=[cci]) | MacOS XCode 14.3 (x86_64/arm64) |
-| [Codeship](https://app.codeship.com/projects/123289)  | [![Codeship Status](https://app.codeship.com/projects/2aa19360-8998-0133-39fd-66416d65b267/status?branch=stable)](https://cdash-ci.irisa.fr/index.php?project=Gismo&filtercount=1&field1=site&compare1=63&value1=[codeship]) | |
-| [GitLab](https://gitlab.com/gismo-ci/gismo/-/pipelines)    | [![pipeline status](https://gitlab.com/gismo-ci/gismo/badges/gitlab_ci/pipeline.svg)](https://cdash-ci.irisa.fr/index.php?project=Gismo&filtercount=1&field1=site&compare1=63&value1=[gitlab-ci]) | Linux non-default configurations |
-| [GitHub Actions](https://github.com/gismo/gismo/actions) | [![Build Status](https://github.com/gismo/gismo/workflows/gismo/badge.svg?branch=stable)](https://cdash-ci.irisa.fr/index.php?project=Gismo&filtercount=1&field1=site&compare1=63&value1=[actions]) | Latest Linux/MacOS/Windows |
-| [GitLab-Inria]() | [![Build Status](https://gitlab.inria.fr/gismo/gismo/badges/stable/pipeline.svg)](https://gitlab.inria.fr/gismo/gismo/-/pipelines) | CI at Inria |
+| [CDash](https://cdash-ci.irisa.fr/index.php?project=Gismo) | [![cdash](https://img.shields.io/website?down_color=lightgrey&down_message=offline&label=CDash&up_color=008A00&up_message=up&url=https%3A%2F%2Fcdash-ci.irisa.fr%2Findex.php%3Fproject%3DGismo)](https://cdash-ci.irisa.fr/index.php?project=Gismo) | Report results from all builds |
+| [Circle CI](https://circleci.com/gh/gismo/gismo) | [![CircleCI](https://img.shields.io/circleci/build/github/gismo/gismo)](https://cdash-ci.irisa.fr/index.php?project=Gismo&filtercount=1&field1=site&compare1=63&value1=[circleci]) | MacOS XCode 14.3 (x86_64/arm64) |
+| [GitLab](https://gitlab.com/gismo-ci/gismo/-/pipelines)    | [![Gitlab Pipeline Status](https://img.shields.io/gitlab/pipeline-status/gismo-ci%2Fgismo?branch=stable)](https://cdash-ci.irisa.fr/index.php?project=Gismo&filtercount=1&field1=site&compare1=63&value1=[gitlab-ci]) | Linux non-default configurations |
+| [GitHub Actions](https://github.com/gismo/gismo/actions) | [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/gismo/gismo/gismo.yml?branch=stable)](https://cdash-ci.irisa.fr/index.php?project=Gismo&filtercount=1&field1=site&compare1=63&value1=[actions]) | Latest Linux/MacOS/Windows |
 | GCC Farm | [Status](https://cdash-ci.irisa.fr/index.php?project=Gismo&filtercount=1&field1=site&compare1=63&value1=[gccfarm]) | Builders from the GCC Farm   |
 | [OBS](https://build.opensuse.org/package/show/home:filiatra/gismo) | [binaries](https://software.opensuse.org/download/package?project=home:filiatra&package=gismo)  | Upstream package builds for many Linux distributions |
 | [Launchpad](https://code.launchpad.net/~g+smo/+recipe/g+smo-daily) |[binaries](https://launchpad.net/~g+smo/+archive/ubuntu/upstream/+packages)  | Upstream package builds for Ubuntu distributions |
