@@ -9,7 +9,7 @@
     License, v. 2.0. If a copy of the MPL was not distributed with this
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-    Author(s): M. Kapl, G. Kiss, A. Mantzaflaris, D. Mokris
+    Author(s): M. Kapl, G. Kiss, A. Mantzaflaris, D. Mokris, S. Imperatore
 
 */
 
@@ -28,7 +28,7 @@
 
 namespace gismo
 {
-
+/// Deconstructor
 template<class T>
 gsFitting<T>::~gsFitting()
 {
