@@ -24,7 +24,7 @@ namespace gismo
 
 /**
   @brief
-   Class for performing a least squares fit of a parametrized point cloud with a gsGeometry.
+   Class for performing a fit of a parametrized point cloud with a gsGeometry.
 
    \ingroup Modeling
 **/
@@ -39,12 +39,16 @@ public:
         m_result= nullptr;
     }
 
-    /// constructor
+    /** @brief gsFitting: Main constructor of the fitting class 
+    * @param param_values a matrix containing the parameter values that parametrize the \a points
+    * @param points matrix containing the points to be fitted
+    * @param basis basis to use for fitting
+    */
     gsFitting(gsMatrix<T> const & param_values,
               gsMatrix<T> const & points,
               gsBasis<T>  & basis);
 
-        /// constructor
+    /// @brief gsFitting: Main constructor of the fitting class for multi-patch
     gsFitting(gsMatrix<T> const & param_values,
               gsMatrix<T> const & points,
               gsVector<index_t>  offset,
@@ -55,48 +59,71 @@ public:
 
 public:
 
-    /// Computes the least squares fit for a gsBasis
+    /** @brief compute: Computes the coefficients of the spline geometry via penalized least squares
+    * @param lambda smoothing weight
+    */
     void compute(T lambda = 0);
 
+    /** @brief updateGeometry: Updates the fitted geometry with new coefficients and parameters
+    * @param coefficients the new coefficients
+    * @param parameters the new parameters
+    */
     void updateGeometry(gsMatrix<T> coefficients, gsMatrix<T> parameters);
 
+
+    /** @brief initializeGeometry: Initializes the fitted geometry with given coefficients and parameters
+    * @param coefficients the input coefficients
+    * @param parameters the input parameters
+    */
     void initializeGeometry(const gsMatrix<T> & coefficients, const gsMatrix<T> & parameters);
 
+    /// choose the method for computing the coefficients: TDM, PDM, HDM with different blending weights
     enum tdm_method
     {
-        tdm_boundary_tdm,
-        tdm_boundary_pdm,
-        tdm_boundary_tangent,
-        pdm,
-        hybrid_pdm_tdm_boundary_pdm,
-        hybrid_error_pdm_tdm_boundary_pdm,
-        hybrid_curvature_pdm_tdm_boundary_pdm,
-        hybrid_pdm_tdm_boundary_tangent
+        tdm_boundary_pdm, // TDM
+        pdm, // PDM
+        hybrid_pdm_tdm_boundary_pdm, // HDM with constant weight
+        hybrid_error_pdm_tdm_boundary_pdm, // HDM with weight based on point-wise error
+        hybrid_curvature_pdm_tdm_boundary_pdm, // HDM with weight based on curvature
     };
 
+    /**
+     * @brief compute_hdm: computes the coefficients of the spline geometry via Hybrid Distance Minimization (HDM)
+     * @param lambda smoothing weight
+     * @param mu weight for the PDM
+     * @param sigma weight for the TDM
+     * @param interpIdx vector containing the number of interior points and the indices of the boundary points
+     * @param method method for computing the blending weights
+     */
     void compute_tdm(T lambda, T mu, T sigma, const std::vector<index_t> & interpIdx,
                      tdm_method method = hybrid_curvature_pdm_tdm_boundary_pdm);
 
-    // compute coefficients with tdm method, backup
-    void compute_all_tdm(T lambda, T mu, T sigma, const std::vector<index_t> & interpIdx,
-                         tdm_method method = hybrid_curvature_pdm_tdm_boundary_pdm);
-
-    // void compute_tdmlm(T lambda, T lm, const std::vector<index_t> & interpIdx);
-
-    void parameterCorrection(T accuracy = 1e-8,
-                             index_t maxIter = 10,
-                             T tolOrth = 1e-6);
-
+    
+    /// check if the given parameter \a parameter is a corner of the domain \a parametric_domain
     bool is_corner(gsMatrix<T> & parametric_domain, gsVector<T> & parameter);
 
 
-    // difference with is_point_inside_cell in the inclusion of the left and right interval extremes.
+    
+    /// check if the given parameter \a parameter is within the cell \a element
     bool is_point_within_cell(const gsMatrix<T>& parameter, const gsMatrix<T>& element);
+    /// check if the given parameter  \a x, \a y is within the cell \a element; same as \ref is_point_within_cell, but different input format
     bool is_point_within_cell(const T x, const T y, const gsMatrix<T>& element);
+    
+    /// check if the given parameter \a parameter is inside the support \a support
+    /// difference with \ref is_point_inside_cell in the inclusion of the left and right interval extremes.
     bool is_point_inside_support(const gsMatrix<T>& parameter, const gsMatrix<T>& support);
+    /// check if the given parameter \a x, \a y is inside the support \a support; same as \ref is_point_inside_support, but different input format
     bool is_point_inside_support(const T x, const T y, const gsMatrix<T>& support);
 
 
+    /** @brief parameterCorrection: globally apply \a maxIter steps of parameter correction to the least squares fitted geometry
+     * @param accuracy accuracy of the closest point computation
+     * @param maxIter maximum number of parameter correction steps
+     * @param tolOrth orthogonality tolerance
+     */
+    void parameterCorrection(T accuracy = 1e-8,
+                             index_t maxIter = 10,
+                             T tolOrth = 1e-6);
 
     void parameterCorrection_tdm(T accuracy, index_t maxIter, T mu, T sigma, const std::vector<index_t>& interpIdx);
     void parameterCorrectionSepBoundary(T accuracy, index_t maxIter, T mu, T sigma, const std::vector<index_t>& sepIndex);
@@ -104,10 +131,18 @@ public:
     void parameterProjectionSepBoundary(T accuracy,const std::vector<index_t>& interpIdx);
     void parameterProjectionFixedBoundary(T accuracy,const std::vector<index_t>& interpIdx);
     void parameterCorrectionSepBoundary_pdm(T accuracy, index_t maxIter, const std::vector<index_t>& sepIndex);
-    //---
+    
+    /** @brief parameterCorrectionSepBoundary_tdm: apply \a maxIter steps of parameter correction for HDM method, separating interior and boundary points
+    * @param accuracy accuracy of the closest point computation
+    * @param maxIter maximum number of parameter correction steps
+    * @param mu weight for PDM
+    * @param sigma weight for TDM
+    * @param sepIndex vector containing the number of interior points and the indices of the boundary points
+    * @param method method for computing the blending weights
+    */
     void parameterCorrectionSepBoundary_tdm(T accuracy, index_t maxIter, T mu, T sigma, const std::vector<index_t>& sepIndex, tdm_method method = hybrid_curvature_pdm_tdm_boundary_pdm);
-    //--
-    //void parameterCorrectionSepBoundary_tdmlm(T accuracy, index_t maxIter, T lm, const std::vector<index_t>& sepIndex);
+    
+    
 
     void parameterCorrectionFixedBoundary(T accuracy, index_t maxIter, T mu, T sigma, const std::vector<index_t>& interpIdx);
 
@@ -154,35 +189,56 @@ public:
     /// Computes the least squares fit for a gsBasis
     void iterativeCompute( T const & tolerance, unsigned const & num_iters = 10);
 
-    /// Adds to the matrix A_mat terms for minimization of second derivative, weighted
-    /// with parameter lambda.
+    /// Adds to the matrix A_mat terms for minimization of second derivative, weighted with parameter lambda.
     void applySmoothing(T lambda, gsSparseMatrix<T> & A_mat);
     gsSparseMatrix<T> smoothingMatrix(T lambda) const;
     /// Assembles system for the least square fit.
     void assembleSystem(gsSparseMatrix<T>& A_mat, gsMatrix<T>& B);
 
-    // compute the sn nomals of *result at input parameter points
+    /** @brief compute_normals: Computes the normals of the fitted geometry at the input parameter values \a params_int
+    * @param num_int index of the input parameter values
+    * @param params_int input parameter values
+    * @param N_int matrix containing the normals
+    */
     void compute_normals(const index_t & num_int, const gsMatrix<T> & params_int, gsSparseMatrix<T> & N_int);
 
-    // vector of size (num_int, 1) containing all the point-wise errors; store also the max err value.
+    /// vector of length \a num_int containing all the point-wise errors; store also the max err value in \a max_err_int
     gsMatrix<T> fill_pointWiseErrors(const index_t & num_int, T & max_err_int);
 
-    // vector of size (num_int, 1) containing rho = 1/max(c1, c2), where c1, c2 are the principal curvature values computed at every parametric point.
-    gsMatrix<T> inverse_principal_curvatures(const index_t & num_int, const gsMatrix<T> & params_int);
-
+    /// compute the principal curvatures (c1, c2) at the given parameters \a params
     gsMatrix<T> principal_curvatures(const gsMatrix<T> & params);
 
-    // compute the weights for the pdm-tdm balance in the hybrid method.
+    /// vector of length \a num_int containing rho = 1/max(c1, c2), where c1, c2 are the principal curvature values computed at every parametric point \a params_int
+    gsMatrix<T> inverse_principal_curvatures(const index_t & num_int, const gsMatrix<T> & params_int);
+
+    /** @brief blending_weights: computes the blending weights \a mu and \a sigma for the balance mu * PDM + sigma * TDM in the HDM method
+    * @param N_int matrix containing the nomals at the parameters \a params_int
+    * @param num_int indeces of the interior parameters
+    * @param mu weight for PDM
+    * @param sigma weight for TDM
+    * @param params_int input parameter values
+    * @param method method for computing the blending weights: constant, based on point-wise error, based on curvature
+    * @param NNT output matrix containing the normals and the blending weights
+     */
     void blending_weights(const gsSparseMatrix<T> & N_int, const index_t & num_int, const T & mu, const T & sigma,
                           const gsMatrix<T> & params_int, tdm_method method, gsSparseMatrix<T> & NNT);
 
-    // Assemble system for Hybrid Distance Minimization
+    /** @brief assembleSystem: assembles the linear system for the Hybrid Distance Minimization method
+    * @param points_int interior points
+    * @param params_int interior parameters
+    * @param points_bdy boundary points
+    * @param params_bdy boundary parameters
+    * @param num_basis dimension of the basis
+    * @param NNT matrix containing the normals and the blending weights
+    * @param A_tilde output system matrix
+    * @param rhs output right-hand side vector
+    */
     void assembleSystem(const gsMatrix<T> & points_int, const gsMatrix<T> & params_int,
                         const gsMatrix<T> & points_bdy, const gsMatrix<T> & params_bdy,
                         const index_t & num_basis, const gsSparseMatrix<T> & NNT,
                         gsSparseMatrix<T> & A_tilde, gsMatrix<T> & rhs);
 
-    // apply smoothing
+    /// Adds to the matrix A_tilde of the HDM method the terms for minimization of second derivative, weighted with parameter lambda.
     void applySmoothing(T lambda, const index_t & num_basis, gsSparseMatrix<T> & m_G, gsSparseMatrix<T> & G_mat, gsSparseMatrix<T> & A_tilde);
 
 public:
@@ -199,7 +255,6 @@ public:
     void setBasis(gsBasis<T> & basis) {m_basis=&basis;}
 
     /// returns the parameter values
-    gsMatrix<T> & getreturnParamValues() {return m_param_values;}
     gsMatrix<T> & returnParamValues() {return m_param_values;}
 
     /// returns the points

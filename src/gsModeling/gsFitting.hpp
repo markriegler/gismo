@@ -28,7 +28,7 @@
 
 namespace gismo
 {
-/// Deconstructor
+// deconstructor
 template<class T>
 gsFitting<T>::~gsFitting()
 {
@@ -36,6 +36,8 @@ gsFitting<T>::~gsFitting()
       delete m_result;
 }
 
+
+// constructor
 template<class T>
 gsFitting<T>::  gsFitting(gsMatrix<T> const & param_values,
                           gsMatrix<T> const & points,
@@ -55,6 +57,7 @@ gsFitting<T>::  gsFitting(gsMatrix<T> const & param_values,
     m_offset[1] = m_points.rows();
 }
 
+// constructor
 template<class T>
 gsFitting<T>::gsFitting(gsMatrix<T> const& param_values,
                         gsMatrix<T> const& points,
@@ -69,110 +72,83 @@ gsFitting<T>::gsFitting(gsMatrix<T> const& param_values,
     m_offset = give(offset);
 }
 
+// compute the coefficients of the spline geometry via penalized least squares
 template<class T>
 void gsFitting<T>::compute(T lambda)
 {
-  gsInfo << "START ---------------------------------------------- PDM coefs.\n";
-    m_last_lambda = lambda;
+  
+  m_last_lambda = lambda;
 
-    // Wipe out previous result
-    if ( m_result!=nullptr )
-        delete m_result;
+  // Wipe out previous result
+  if ( m_result!=nullptr )
+      delete m_result;
 
-    const int num_basis = m_basis->size();
-    const short_t dimension = m_points.cols();
+  const int num_basis = m_basis->size();
+  const short_t dimension = m_points.cols();
 
-    //left side matrix
-    //gsMatrix<T> A_mat(num_basis,num_basis);
-    gsSparseMatrix<T> A_mat(num_basis + m_constraintsLHS.rows(), num_basis + m_constraintsLHS.rows());
-    //gsMatrix<T>A_mat(num_basis,num_basis);
-    //To optimize sparse matrix an estimation of nonzero elements per
-    //column can be given here
-    int nonZerosPerCol = 1;
-    for (int i = 0; i < m_basis->domainDim(); ++i) // to do: improve
-        // nonZerosPerCol *= m_basis->degree(i) + 1;
-        nonZerosPerCol *= ( 2 * m_basis->basis(0).degree(i) + 1 ) * 4;
-    // TODO: improve by taking constraints nonzeros into account.
-    A_mat.reservePerColumn( nonZerosPerCol );
+  //left side matrix
+  //gsMatrix<T> A_mat(num_basis,num_basis);
+  gsSparseMatrix<T> A_mat(num_basis + m_constraintsLHS.rows(), num_basis + m_constraintsLHS.rows());
+  //gsMatrix<T>A_mat(num_basis,num_basis);
+  //To optimize sparse matrix an estimation of nonzero elements per
+  //column can be given here
+  int nonZerosPerCol = 1;
+  for (int i = 0; i < m_basis->domainDim(); ++i) // to do: improve
+      // nonZerosPerCol *= m_basis->degree(i) + 1;
+      nonZerosPerCol *= ( 2 * m_basis->basis(0).degree(i) + 1 ) * 4;
+  // TODO: improve by taking constraints nonzeros into account.
+  A_mat.reservePerColumn( nonZerosPerCol );
 
-    //right side vector (more dimensional!)
-    gsMatrix<T> m_B(num_basis + m_constraintsRHS.rows(), dimension);
-    m_B.setZero();  // enusure that all entries are zero in the beginning
+  //right side vector (more dimensional!)
+  gsMatrix<T> m_B(num_basis + m_constraintsRHS.rows(), dimension);
+  m_B.setZero();  // enusure that all entries are zero in the beginning
 
-    // building the matrix A and the vector b of the system of linear
-    // equations A*x==b
+  // building the matrix A and the vector b of the system of linear
+  // equations A*x==b
 
-    assembleSystem(A_mat, m_B);
-
-
-    // --- Smoothing matrix computation
-    //test degree >=3
-    if(lambda > 0)
-      applySmoothing(lambda, A_mat);
-
-    if(m_constraintsLHS.rows() > 0)
-	extendSystem(A_mat, m_B);
-
-    //Solving the system of linear equations A*x=b (works directly for a right side which has a dimension with higher than 1)
-
-    //gsDebugVar( A_mat.nonZerosPerCol().maxCoeff() );
-    //gsDebugVar( A_mat.nonZerosPerCol().minCoeff() );
-    A_mat.makeCompressed();
-
-    typename gsSparseSolver<T>::BiCGSTABILUT solver( A_mat );
-
-    if ( solver.preconditioner().info() != gsEigen::Success )
-    {
-        gsWarn<<  "The preconditioner failed. Aborting.\n";
-
-        return;
-    }
-    //Solves for many right hand side  columns
-    gsMatrix<T> x;
-
-    x = solver.solve(m_B); //toDense()
-
-    // If there were constraints, we obtained too many coefficients.
-    x.conservativeResize(num_basis, gsEigen::NoChange);
-
-    //gsMatrix<T> x (m_B.rows(), m_B.cols());
-    //x=A_mat.fullPivHouseholderQr().solve( m_B);
-    // Solves for many right hand side  columns
-    // finally generate the B-spline curve
-
-    if (const gsBasis<T> * bb = dynamic_cast<const gsBasis<T> *>(m_basis))
-        m_result = bb->makeGeometry( give(x) ).release();
-    else
-        m_mresult = gsMappedSpline<2,T> ( *static_cast<gsMappedBasis<2,T>*>(m_basis),give(x));
-
-    gsInfo << "END ---------------------------------------------- PDM coefs.\n";
-}
+  assembleSystem(A_mat, m_B);
 
 
+  // --- Smoothing matrix computation
+  //test degree >=3
+  if(lambda > 0)
+    applySmoothing(lambda, A_mat);
 
+  if(m_constraintsLHS.rows() > 0)
+    extendSystem(A_mat, m_B);
 
-void writeToCSVfile(std::string name, gsMatrix<> matrix)
-{
-  std::ofstream file(name.c_str());
-  for(int  i = 0; i < matrix.rows(); i++)
+  //Solving the system of linear equations A*x=b (works directly for a right side which has a dimension with higher than 1)
+  A_mat.makeCompressed();
+
+  typename gsSparseSolver<T>::BiCGSTABILUT solver( A_mat );
+
+  if ( solver.preconditioner().info() != gsEigen::Success )
   {
-    for(int j = 0; j < matrix.cols(); j++)
-    {
-       std::string str = std::to_string(matrix(i,j));
-       if(j+1 == matrix.cols())
-       {
-           file<<std::setprecision(10)<<str;
-       }
-       else
-       {
-           file<<std::setprecision(10)<<str<<',';
-       }
-    }
-    file<<'\n';
+      gsWarn<<  "The preconditioner failed. Aborting.\n";
+
+      return;
   }
+  //Solves for many right hand side  columns
+  gsMatrix<T> x;
+
+  x = solver.solve(m_B); //toDense()
+
+  // If there were constraints, we obtained too many coefficients.
+  x.conservativeResize(num_basis, gsEigen::NoChange);
+
+  //gsMatrix<T> x (m_B.rows(), m_B.cols());
+  //x=A_mat.fullPivHouseholderQr().solve( m_B);
+  // Solves for many right hand side  columns
+  // finally generate the B-spline geometry
+
+  if (const gsBasis<T> * bb = dynamic_cast<const gsBasis<T> *>(m_basis))
+      m_result = bb->makeGeometry( give(x) ).release();
+  else
+      m_mresult = gsMappedSpline<2,T> ( *static_cast<gsMappedBasis<2,T>*>(m_basis),give(x));
+
 }
 
-
+// update the geometry with the given coefficients and parameters
 template<class T>
 void gsFitting<T>::updateGeometry(gsMatrix<T> coefficients,
                                   gsMatrix<T> parameters)
@@ -193,6 +169,7 @@ void gsFitting<T>::updateGeometry(gsMatrix<T> coefficients,
 }
 
 
+// Initialize the geometry with the given coefficients and parameters
 template<class T>
 void gsFitting<T>::initializeGeometry(const gsMatrix<T> & coefficients,
                                       const gsMatrix<T> & parameters)
@@ -211,7 +188,7 @@ void gsFitting<T>::initializeGeometry(const gsMatrix<T> & coefficients,
   this->m_param_values = parameters;
 }
 
-
+// compute normals at interior parameters
 template<class T>
 void gsFitting<T>::compute_normals(const index_t & num_int, const gsMatrix<T> & params_int, gsSparseMatrix<T> & N_int)
 {
@@ -236,6 +213,7 @@ void gsFitting<T>::compute_normals(const index_t & num_int, const gsMatrix<T> & 
 
 }
 
+// vector of size (num_int,1) containing all the point-wise errors; store also the max err value
 template<class T>
 gsMatrix<T> gsFitting<T>::fill_pointWiseErrors(const index_t & num_int, T & max_err_int)
 {
@@ -249,6 +227,7 @@ gsMatrix<T> gsFitting<T>::fill_pointWiseErrors(const index_t & num_int, T & max_
   return matrix;
 }
 
+// compute the principal curvatures at the given parameters
 template<class T>
 gsMatrix<T> gsFitting<T>::principal_curvatures(const gsMatrix<T> & params)
 {
@@ -260,7 +239,7 @@ gsMatrix<T> gsFitting<T>::principal_curvatures(const gsMatrix<T> & params)
     gsVector<T> pm(2);
     gsMatrix<T> pcs, out;
 
-    // rho = 1/max(c1, c2)
+    // (c1, c2) = principal_curvatures
     for (index_t d = 0; d<numData; d++)
     {
       pm = params.col(d);
@@ -278,43 +257,23 @@ gsMatrix<T> gsFitting<T>::principal_curvatures(const gsMatrix<T> & params)
 
 
 
-
+// compute the inverse of the principal curvatures at the given parameters
 template<class T>
 gsMatrix<T> gsFitting<T>::inverse_principal_curvatures(const index_t & num_int, const gsMatrix<T> & params_int)
 {
 
   gsMatrix<T> inv_c(num_int, 1);
-  //
-  // gsExprEvaluator<T> ev;
-  // auto G = ev.getMap(*m_result);
-  //
-  // gsVector<T> pm(2);
-  // gsMatrix<T> pcs, out;
-
   gsMatrix<T> pcs;
   if (m_pointCurvature.size() == 0)
-  {
-    gsInfo << "First curvatures computation.\n";
     pcs = principal_curvatures(params_int);
-  }
   else
-  {
-    gsInfo << "Curvatures already computed.\n";
     pcs = m_pointCurvature;
-  }
 
   pcs = pcs.cwiseAbs();
 
   // rho = 1/max(c1, c2)
   for (index_t d = 0; d<num_int; d++)
   {
-
-    // pm = params_int.col(d);
-    // out = ev.eval( shapeop(G), pm );
-    //
-    // pcs = out.template selfadjointView<gsEigen::Lower>().eigenvalues();
-    // pcs = pcs.cwiseAbs();
-
     T den = pcs(d,0);
     if ( pcs(d,1) > pcs(d,0) )
       den = pcs(d,1);
@@ -326,7 +285,7 @@ gsMatrix<T> gsFitting<T>::inverse_principal_curvatures(const index_t & num_int, 
 }
 
 
-
+// compute the weights for the pdm-tdm balance in the hybrid method.
 template<class T>
 void gsFitting<T>::blending_weights(const gsSparseMatrix<T> & N_int, const index_t & num_int, const T & mu, const T & sigma,
                                     const gsMatrix<T> & params_int,
@@ -335,8 +294,7 @@ void gsFitting<T>::blending_weights(const gsSparseMatrix<T> & N_int, const index
     NNT.resize(3 * num_int, 3 * num_int);
     if (method == hybrid_pdm_tdm_boundary_pdm)
     {
-      gsInfo << "CONSTANT BLENDING WEIGHTS.\n";
-      gsInfo << mu << "*PDM + " << sigma << "*TDM with PDM on the boundary\n";
+      // constant blending weights: mu * PDM + sigma * TDM, mu and sigma given in input.
       gsSparseMatrix<T> Im(3 * num_int, 3 * num_int);
       Im.setIdentity();
       NNT = mu * Im + sigma * N_int * N_int.transpose();
@@ -346,8 +304,7 @@ void gsFitting<T>::blending_weights(const gsSparseMatrix<T> & N_int, const index
       gsVector<T> MK(num_int);
       if (m_pointErrors.size() == 0)
       {
-        gsInfo << " ???????????????????????????????????????????? Am I here ????????????????????????????????????????????\n";
-        gsInfo << "In case I should not. :-(\n";
+        gsWarn << "No point-wise errors found. Computing them now.\n";
         computeErrors();
       }
 
@@ -355,26 +312,18 @@ void gsFitting<T>::blending_weights(const gsSparseMatrix<T> & N_int, const index
 
       gsMatrix<T> points_int_errors, rho_c, dist_plus_rho;
 
-      time_t now = time(0);
       points_int_errors = fill_pointWiseErrors(num_int, max_err_int);
-
-      writeToCSVfile(std::to_string(now) + "err_w.csv", points_int_errors);
 
       if (method == hybrid_error_pdm_tdm_boundary_pdm)
       {
-        gsInfo << "ERROR BLENDING WEIGHTS.\n";
-        gsInfo << "err*PDM + (1-err)*TDM with PDM on the boundary\n";
+        // error blending weights: err*PDM + (1-err)*TDM, err = error/max_error
         MK = (0.5/max_err_int) * points_int_errors;//.asDiagonal();
-        // MK = points_int_errors/max_err_int;//.asDiagonal();
       }
       else if (method == hybrid_curvature_pdm_tdm_boundary_pdm)
       {
-        gsInfo << "CURVATURE BLENDING WEIGHTS.\n";
-        gsInfo << "c1*PDM + c2*TDM with PDM on the boundary\n";
-        rho_c = inverse_principal_curvatures(num_int, params_int); // not to be recomputed, but to be given in input.
-        // writeToCSVfile(std::to_string(now) + "rho_c.csv", rho_c);
+        // curvature blending weights: rho1*PDM + rho2*TDM
+        rho_c = inverse_principal_curvatures(num_int, params_int);
         dist_plus_rho = (points_int_errors + rho_c);
-        // writeToCSVfile(std::to_string(now) + "dpr_c.csv", dist_plus_rho);
         MK = (points_int_errors.cwiseProduct( dist_plus_rho.cwiseInverse() ));//.asDiagonal();
       }
       else
@@ -389,7 +338,7 @@ void gsFitting<T>::blending_weights(const gsSparseMatrix<T> & N_int, const index
 
 }
 
-
+// Assemble the linear system for Hybrid Distance Minimization
 template<class T>
 void gsFitting<T>::assembleSystem(const gsMatrix<T> & points_int, const gsMatrix<T> & params_int,
                                   const gsMatrix<T> & points_bdy, const gsMatrix<T> & params_bdy,
@@ -415,22 +364,17 @@ void gsFitting<T>::assembleSystem(const gsMatrix<T> & points_int, const gsMatrix
     A_tilde.makeCompressed();
 }
 
-
+// compute the geometry coefficients with Hybrid Distance Minimization method 
 template<class T>
 void gsFitting<T>::compute_tdm(T lambda, T mu, T sigma, const std::vector<index_t> & interpIdx, tdm_method method)
 {
-
-    time_t now = time(0);
-    gsInfo << "---------------------------------------------------------------------------------------------------------\n";
-    gsInfo << "START compute_tdm(...)\n";
-
     // dimensions initialization
-    const index_t num_basis = m_basis->size();
-    const index_t dim_pts = m_points.cols();
-    const index_t dim_par = m_param_values.rows();
-    const index_t num_pts = m_points.rows();
-    const index_t num_int = interpIdx[0];
-    const index_t num_bdy = num_pts - num_int;
+    const index_t num_basis = m_basis->size(); // dimension of the approximation space
+    const index_t dim_pts = m_points.cols(); // physical space dimension
+    const index_t dim_par = m_param_values.rows(); // parametric space dimension
+    const index_t num_pts = m_points.rows(); // number of points to fit
+    const index_t num_int = interpIdx[0]; // number of interior points
+    const index_t num_bdy = num_pts - num_int; // number of boundary points
 
     gsMatrix<T> points_int = m_points.block(0,       0, num_int, dim_pts);
     gsMatrix<T> points_bdy = m_points.block(num_int, 0, num_bdy, dim_pts);
@@ -440,9 +384,8 @@ void gsFitting<T>::compute_tdm(T lambda, T mu, T sigma, const std::vector<index_
     m_last_lambda = lambda;
     if ( !m_result )
     {
-        gsInfo << "No existing geometry...\n";
+        gsWarn << "No existing geometry. Computing it now as Penalized Least Squares model, with lambda = "<< m_last_lambda <<".\n";
         compute(m_last_lambda);
-        gsInfo << "... now it does, as Penalized Least Squares model, with lambda = "<< m_last_lambda <<".\n";
         gsMatrix<T> refCoefs = m_result->coefs();
 
         // Wipe out previous result
@@ -458,8 +401,8 @@ void gsFitting<T>::compute_tdm(T lambda, T mu, T sigma, const std::vector<index_
     {
         if( interpIdx.size() == 0)
         {
-            gsInfo << "Input point cloud needs to be ordered:\n"
-                   << "interior points, south boundary curve, east boundary curve, north boundary curve, west boundary curve.\n";
+          GISMO_ERROR("Input point cloud needs to be ordered:\n"
+                      "interior points, south boundary curve, east boundary curve, north boundary curve, west boundary curve.\n");
             return;
         }
 
@@ -467,7 +410,6 @@ void gsFitting<T>::compute_tdm(T lambda, T mu, T sigma, const std::vector<index_
         gsMatrix<T> rhs;
 
         // compute the error of the current geometry.
-        //if(m_pointErrors.size() == 0)
         computeErrors();
 
         T max_err_int = m_pointErrors[0];
@@ -507,11 +449,6 @@ void gsFitting<T>::compute_tdm(T lambda, T mu, T sigma, const std::vector<index_
 
         gsMatrix<T> sol_tilde = solver.solve(rhs);
 
-        // if (solver.info() != gsEigen::Success)
-        // {
-        //     gsInfo << "QR: " << solver.lastErrorMessage();
-        // }
-
         // If there were constraints, we obtained too many coefficients.
         sol_tilde.conservativeResize(num_basis * 3, gsEigen::NoChange);
 
@@ -533,22 +470,16 @@ void gsFitting<T>::compute_tdm(T lambda, T mu, T sigma, const std::vector<index_
             m_mresult = gsMappedSpline<2,T> ( *static_cast<gsMappedBasis<2,T>*>(m_basis),give(coefs_tilde));
 
     }// fi
-
-    gsInfo << "END compute_tdm(...)\n";
-    gsInfo << "---------------------------------------------------------------------------------------------------------\n";
 }
 
 
-
+// check if the given parameter is a corner of the domain
 template <class T>
 bool gsFitting<T>::is_corner(gsMatrix<T> & p_domain,
                              gsVector<T> & param)
 {
   bool corner_check = false;
   if( (math::abs(param(0) - p_domain(0,0)) < 1e-15) && (math::abs(param(1) - p_domain(1,0)) < 1e-15) ){
-    // gsInfo << "param:\n" << param << "\n";
-    // gsInfo << param(0,0) << " == " << p_domain(0,0) << "\n";
-    // gsInfo << param(0,1) << " == " << p_domain(1,0) << "\n";
     corner_check = true;
   }
   else if( (math::abs(param(0) - p_domain(0,1)) < 1e-15) && (math::abs(param(1) - p_domain(1,0)) < 1e-15) ){
@@ -566,7 +497,7 @@ bool gsFitting<T>::is_corner(gsMatrix<T> & p_domain,
   return corner_check;
 }
 
-// difference with is_point_inside_cell in the inclusion of the left and right interval extremes.
+// difference with is_point_inside_support in the inclusion of the left and right interval extremes.
 template <class T>
 bool is_point_within_cell(const gsMatrix<T>& parameter,
                           const gsMatrix<T>& element)
@@ -606,8 +537,6 @@ bool is_point_inside_support(const T x,
     return support(0, 0) <= x && x < support(0, 1) &&
         support(1, 0) <= y && y < support(1, 1);
 }
-
-
 
 
 
@@ -973,14 +902,7 @@ void gsFitting<T>::parameterProjectionFixedBoundary(T accuracy,const std::vector
 
 
 
-
-
-
-
-
-
-
-
+// apply maxIter steps of parameter correction for HDM method, separating interior and boundary points
 template <class T>
 void gsFitting<T>::parameterCorrectionSepBoundary_tdm(T accuracy,
                                                 index_t maxIter,
@@ -988,7 +910,6 @@ void gsFitting<T>::parameterCorrectionSepBoundary_tdm(T accuracy,
                                                 const std::vector<index_t>& interpIdx,
                                                 tdm_method method)
 {
-  gsInfo << "parameterCorrectionSepBoundary_tdm(...)\n";
     if ( !m_result )
     {
       compute(m_last_lambda);
@@ -998,28 +919,18 @@ void gsFitting<T>::parameterCorrectionSepBoundary_tdm(T accuracy,
     const index_t n = m_points.cols();
     for (index_t it = 0; it<maxIter; ++it)
     {
-      time_t now = time(0);
 //#       pragma omp parallel for default(shared) private(newParam)
-      gsWriteParaviewPoints(this->returnParamValues(), std::to_string(now) + "tmd_uv_in");
-      gsInfo << "(a.) Projections.\n";
-      parameterProjectionSepBoundary(accuracy, interpIdx);
-      // parameterProjectionFixedBoundary(accuracy, interpIdx);
-      //gsWriteParaviewPoints(this->returnParamValues(), std::to_string(now) + "tdm_uv_out");
-      gsInfo << "(b.) compute T DM coefs again;\n";
-      compute_tdm(m_last_lambda, mu, sigma, interpIdx, method);
-      gsInfo << "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n";
-      // computeErrors();
+      parameterProjectionSepBoundary(accuracy, interpIdx); // projection of the points  on the geometry
+      compute_tdm(m_last_lambda, mu, sigma, interpIdx, method); // updates of the coefficients with HDM
     }// step of PC
-
-
 }
 
+// apply maxIter steps of parameter correction for PDM method, separating interior and boundary points
 template <class T>
 void gsFitting<T>::parameterCorrectionSepBoundary_pdm(T accuracy,
                                                   index_t maxIter,
                                                   const std::vector<index_t>& interpIdx)
 {
-  gsInfo << "parameterCorrectionSepBoundary_pdm(...)\n";
     if ( !m_result )
     {
       compute(m_last_lambda);
@@ -1029,21 +940,15 @@ void gsFitting<T>::parameterCorrectionSepBoundary_pdm(T accuracy,
     const index_t n = m_points.cols();
     for (index_t it = 0; it<maxIter; ++it)
     {
-
-      time_t now = time(0);
-//#       pragma omp parallel for default(shared) private(newParam)
-      // gsWriteParaviewPoints(this->returnParamValues(), std::to_string(now) + "pdm_uv_in");
+//#  pragma omp parallel for default(shared) private(newParam)
       gsInfo << "(a.) Projections.\n";
-      parameterProjectionSepBoundary(accuracy, interpIdx);
-      // parameterProjectionFixedBoundary(accuracy, interpIdx);
-      // gsWriteParaviewPoints(this->returnParamValues(), std::to_string(now) + "pdm_uv_out");
-      gsInfo << "(b) P DM coefficients computation.\n";
-      compute(m_last_lambda);
+      parameterProjectionSepBoundary(accuracy, interpIdx); // projection of the points  on the geometry
+      compute(m_last_lambda); // updates of the coefficients with PDM
     }// step of PC
 }
 
 
-
+// apply maxIter steps of parameter correction
 template <class T>
 void gsFitting<T>::parameterCorrection(T accuracy,
                                        index_t maxIter,

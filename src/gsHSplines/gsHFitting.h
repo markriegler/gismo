@@ -43,13 +43,13 @@ public:
     gsHFitting();
 
     /**
-    *\brief gsHFitting: Main constructor of the fitting class
+    *\brief gsHFitting: Main constructor of the h-fitting class
     * \param param_values a matrix containing the parameter values that parametrize the \a points
-    * \param points The points to be fitted
-    * \param basis  Hiearchical basis to use for fitting
-    * \param refin Percentage of errors to refine (if this strategy is chosen)
-    * \param extension Extension to apply to marked cells
-    * \param lambda Smoothing weight
+    * \param points matrix containing the points to be fitted
+    * \param basis  hiearchical basis to use for fitting
+    * \param refin percentage of errors to refine (if this strategy is chosen)
+    * \param extension extension to apply to marked cells
+    * \param lambda smoothing weight
     */
     gsHFitting(gsMatrix<T> const & param_values,
                gsMatrix<T> const & points,

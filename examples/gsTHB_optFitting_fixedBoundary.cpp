@@ -510,7 +510,7 @@ int main(int argc, char *argv[])
     cmd.addReal("e", "tolerance", "error tolerance (desired upper bound for pointwise error)", tolerance);
     cmd.addString("f", "filename", "name of the .xml file containing the data", fn);
     cmd.addReal("g", "gtoll", "stopping criteria on ||g||", gtoll);
-    cmd.addInt("i", "iter", "number of maximum iterations for the optimization algorithm for CPDM.", maxIter);
+    cmd.addInt("i", "iter", "number of maximum iterations for the optimization algorithm for JPDM.", maxIter);
     cmd.addSwitch("j", "atdm", "run the A-TDM algorithm.", atdm); // enable for comparison
     // k
     cmd.addInt("l", "level", "number of maximum iterations for the adaptive loop.", maxRef);
