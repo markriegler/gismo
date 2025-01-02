@@ -102,11 +102,27 @@ int main(int argc, char *argv[])
 
     fd.dump("dump_out");
 
-    for(index_t p=0; p != geo.size(); p++){
-    gsMatrix<> pp;
-    geo[p]->eval_into(uv, pp);
-    gsWriteParaviewPoints(pp, "datapatch" + internal::to_string(p));
+    
+    for(index_t p=0; p != geo.size(); p++)
+    {
+        gsMatrix<> pp;
+        geo[p]->eval_into(uv, pp);
+        gsWriteParaviewPoints(pp, "datapatch" + internal::to_string(p));
     }
+    
+    gsMatrix<> paramsViaFun, pointsViaFun; 
+    gsMultiPatch<> mp = *geo[numPatch];
+    gsInfo << "Number of patches: " << mp.nPatches() << "\n";
+    sampleGridGeometry(mp, numPatch, numPts, paramsViaFun, pointsViaFun);
+    gsWriteParaviewPoints(paramsViaFun, "paramsViaFun");
+    gsWriteParaviewPoints(pointsViaFun, "pointsViaFun");
+
+    gsInfo << "Comparison of the two methods:\n";
+    gsInfo << (paramsViaFun - uv).maxCoeff() << "\n";
+    gsInfo << (paramsViaFun - uv).minCoeff() << "\n";
+    gsInfo << (pointsViaFun - xyz).maxCoeff() << "\n";
+    gsInfo << (pointsViaFun - xyz).minCoeff() << "\n";
+
 
     return 0;
 }

@@ -655,11 +655,9 @@ typename gsTensorBSpline<2,T>::Ptr gsInterpolateSurface(
     return master;
 }
 
-/**
-       Constructs a gsSparseMatrix<T> with \a rows rows and \a cols
-       cols with block repeated three times along the diagonal and
+    /**
+       Constructs a gsSparseMatrix<T> with with block \a block repeated three times along the diagonal and
        saves it to \a result.
-
        TODO: Make more general.
      */
     template<class T>
@@ -685,5 +683,201 @@ typename gsTensorBSpline<2,T>::Ptr gsInterpolateSurface(
       result.makeCompressed();
     }
 
+    /// Function to scale the input points \a xyz in [0,1]^D and saves it to \a points.
+    template<class T>
+    void scalePoints(const gsMatrix<T> & xyz,
+                           gsMatrix<T> & points)
+    {
+        T p_min = xyz.minCoeff(),
+        p_max = xyz.maxCoeff();
+        T den = p_max - p_min;
+
+        points.resize(xyz.rows(), xyz.cols());
+        points = (1/den)*(xyz - p_min * gsMatrix<T>::Ones(xyz.rows(), xyz.cols()));
+    }
+
+    
+    /** \brief sortPointCloud: sorts the point cloud into interior and boundary points.
+    * parameters and points ordered by : interior (parameters/points) and
+      boundary (parameters/points) ordered anticlockwise south-east-north-west edges,
+      plus the 4 corner domains stored in a vector [c1, c2, c3, c4].
+    * @param parameters : matrix of parameters
+    * @param points : matrix of points 
+    * @param corners : vector of corner domains indeces [c1, c2, c3, c4]
+    */
+    template<class T>
+    void sortPointCloud(gsMatrix<T> & parameters,
+                        gsMatrix<T> & points,
+                        std::vector<index_t> & corners)
+    {
+        // The following matrices and vectors store the parameters and points values and indeces.
+        // There is no need to store these information, we could also use only one matrix and 1 std::vector and overwirte them each time.
+        gsMatrix<T> uv_interiors, uv_south, uv_east, uv_north, uv_west;
+        gsMatrix<T> p_interiors, p_south, p_east, p_north, p_west;
+        std::vector<index_t> interiors, b_west, b_east, b_south, b_north;
+
+        // Determine the parameter domain by mi/max of parameter values
+        T u_min = parameters.row(0).minCoeff(),
+        u_max = parameters.row(0).maxCoeff(),
+        v_min = parameters.row(1).minCoeff(),
+        v_max = parameters.row(1).maxCoeff();
+
+        gsVector<T> curr_point(2,1);
+        for(index_t i=0; i < parameters.cols(); i++)
+        {
+            curr_point = parameters.col(i);
+            if( (u_min < curr_point(0)) && (curr_point(0) < u_max) && (v_min < curr_point(1)) && (curr_point(1) < v_max) )
+                interiors.push_back(i);
+            else // not interior point
+            {
+                if( (math::abs(curr_point(0) - u_min) < 1e-15) && (curr_point(1) > v_min) )
+                    b_west.push_back(i);//west edge
+                else if( (math::abs(curr_point(0) - u_max) < 1e-15) && curr_point(1) < v_max)
+                    b_east.push_back(i);// east edge
+                else if( (math::abs(curr_point(1) - v_min) < 1e-15) && (curr_point(0) < u_max) )
+                    b_south.push_back(i);// south edge
+                else
+                    b_north.push_back(i);// north edge
+            }
+        }
+    
+        corners.push_back(interiors.size()); // c1
+        corners.push_back(interiors.size() + b_south.size()); // c2
+        corners.push_back(interiors.size() + b_south.size() + b_east.size()); // c3
+        corners.push_back(interiors.size() + b_south.size() + b_east.size() + b_north.size()); // c4
+
+        uv_interiors.resize(2, interiors.size());
+        p_interiors.resize(3, interiors.size());
+        for( size_t i = 0; i < interiors.size(); i++ )
+        {
+            uv_interiors.col(i) = parameters.col(interiors[i]);
+            p_interiors.col(i) = points.col(interiors[i]);
+        }
+
+        uv_west.resize(2, b_west.size());
+        gsMatrix<T> tmp_west(3, b_west.size());
+        for( size_t i = 0; i < b_west.size(); i++ )
+        {
+            uv_west.col(i) = parameters.col(b_west[i]);
+            tmp_west.col(i) = points.col(b_west[i]);
+        }
+
+        uv_east.resize(2, b_east.size());
+        gsMatrix<T> tmp_east(3, b_east.size());
+        for( size_t i = 0; i < b_east.size(); i++ )
+        {
+            uv_east.col(i) = parameters.col(b_east[i]);
+            tmp_east.col(i) = points.col(b_east[i]);
+        }
+
+        uv_south.resize(2, b_south.size());
+        gsMatrix<T> tmp_south(3, b_south.size());
+        for( size_t i = 0; i < b_south.size(); i++ )
+        {
+            uv_south.col(i) = parameters.col(b_south[i]);
+            tmp_south.col(i) = points.col(b_south[i]);
+        }
+
+        uv_north.resize(2, b_north.size());
+        gsMatrix<T> tmp_north(3, b_north.size());
+        for( size_t i = 0; i < b_north.size(); i++ )
+        {
+            uv_north.col(i) = parameters.col(b_north[i]);
+            tmp_north.col(i) = points.col(b_north[i]);
+        }
+
+        uv_south.transposeInPlace();
+        uv_east.transposeInPlace();
+        uv_north.transposeInPlace();
+        uv_west.transposeInPlace();
+
+
+        std::vector<index_t> tmp = uv_south.idxByColumn(0);
+        // gsDebugVar(uv_south);
+        p_south.resize(tmp_south.rows(), tmp_south.cols());
+        for(size_t i = 0; i<tmp.size(); i++)
+        {
+            p_south.col(i) = tmp_south.col(tmp[i]);
+        }
+        uv_south.transposeInPlace();
+
+
+        tmp.clear();
+        tmp = uv_east.idxByColumn(1);
+        // gsDebugVar(uv_east);
+        p_east.resize(tmp_east.rows(), tmp_east.cols());
+        for(size_t i = 0; i<tmp.size(); i++)
+        {
+            p_east.col(i) = tmp_east.col(tmp[i]);
+        }
+        uv_east.transposeInPlace();
+
+
+        tmp.clear();
+        tmp = uv_north.idxByColumn(0);
+        std::reverse(tmp.begin(),tmp.end());
+        // gsDebugVar(uv_north);
+        gsVector<T> tcol = uv_north.col(0).reverse();
+        uv_north.col(0) = tcol;
+        tcol = uv_north.col(1).reverse();
+        uv_north.col(1) = tcol;
+        // gsDebugVar(uv_north);
+        // for (std::vector<index_t>::iterator it = tmp.begin(); it != tmp.end(); ++it)
+        //   gsInfo << *it <<"\n";
+        p_north.resize(tmp_north.rows(), tmp_north.cols());
+        for(size_t i = 0; i<tmp.size(); i++)
+        {
+            p_north.col(i) = tmp_north.col(tmp[i]);
+        }
+        uv_north.transposeInPlace();
+
+        tmp.clear();
+        tmp = uv_west.idxByColumn(1);
+        // gsDebugVar(uv_west);
+        tcol = uv_west.col(0).reverse();
+        uv_west.col(0) = tcol;
+        tcol = uv_west.col(1).reverse();
+        uv_west.col(1) = tcol;
+        // gsDebugVar(uv_west);
+        std::reverse(tmp.begin(),tmp.end());
+
+        p_west.resize(tmp_west.rows(), tmp_west.cols());
+        for(size_t i = 0; i<tmp.size(); i++)
+        {
+            p_west.col(i) = tmp_west.col(tmp[i]);
+        }
+        uv_west.transposeInPlace();
+
+
+        // reordering of the input point cloud (parameters and points)
+        parameters.resize(uv_interiors.rows(), points.cols());
+        parameters << uv_interiors.row(0), uv_south.row(0), uv_east.row(0), uv_north.row(0), uv_west.row(0),
+                    uv_interiors.row(1), uv_south.row(1), uv_east.row(1), uv_north.row(1), uv_west.row(1);
+
+        points.resize(p_interiors.rows(), parameters.cols());
+        points << p_interiors.row(0), p_south.row(0), p_east.row(0), p_north.row(0), p_west.row(0),
+                p_interiors.row(1), p_south.row(1), p_east.row(1), p_north.row(1), p_west.row(1),
+                p_interiors.row(2), p_south.row(2), p_east.row(2), p_north.row(2), p_west.row(2);
+
+    } // end sortPointCloud
+
+    template<class T>
+    void sampleGridGeometry(const gsMultiPatch<T> & mp,
+                            const index_t & numPatch,
+                            const index_t & numSamples,
+                            gsMatrix<T> & params,
+                            gsMatrix<T> & points)
+    {
+        GISMO_ASSERT( numPatch <= mp.nPatches()-1 , "Patch number not found, quitting.");
+        const gsGeometry<T> & geometry = mp.patch(numPatch);
+        //gsMatrix<> ab = geometry.support();
+
+        gsVector<unsigned> numPtsVec(2);
+        numPtsVec<<numSamples,numSamples;
+        gsVector<T> a = geometry.support().col(0);
+        gsVector<T> b = geometry.support().col(1);
+        params = gsPointGrid(a,b, numPtsVec);
+        geometry.eval_into(params, points);
+    }
 
 } // namespace gismo
