@@ -22,9 +22,6 @@
 #include <gsNurbs/gsBSpline.h>
 #include <gsTensor/gsTensorDomainIterator.h>
 
-#include <gsIO/gsWriteParaview.h>
-
-
 
 namespace gismo
 {
@@ -57,6 +54,7 @@ gsFitting<T>::  gsFitting(gsMatrix<T> const & param_values,
     m_offset[1] = m_points.rows();
 }
 
+
 // constructor
 template<class T>
 gsFitting<T>::gsFitting(gsMatrix<T> const& param_values,
@@ -71,6 +69,7 @@ gsFitting<T>::gsFitting(gsMatrix<T> const& param_values,
     m_points.transposeInPlace();
     m_offset = give(offset);
 }
+
 
 // compute the coefficients of the spline geometry via penalized least squares
 template<class T>
@@ -148,6 +147,7 @@ void gsFitting<T>::compute(T lambda)
 
 }
 
+
 // update the geometry with the given coefficients and parameters
 template<class T>
 void gsFitting<T>::updateGeometry(gsMatrix<T> coefficients,
@@ -188,7 +188,8 @@ void gsFitting<T>::initializeGeometry(const gsMatrix<T> & coefficients,
   this->m_param_values = parameters;
 }
 
-// compute normals at interior parameters
+
+// compute normals at input parameters
 template<class T>
 void gsFitting<T>::compute_normals(const index_t & num_int, const gsMatrix<T> & params_int, gsSparseMatrix<T> & N_int)
 {
@@ -213,6 +214,7 @@ void gsFitting<T>::compute_normals(const index_t & num_int, const gsMatrix<T> & 
 
 }
 
+
 // vector of size (num_int,1) containing all the point-wise errors; store also the max err value
 template<class T>
 gsMatrix<T> gsFitting<T>::fill_pointWiseErrors(const index_t & num_int, T & max_err_int)
@@ -226,6 +228,7 @@ gsMatrix<T> gsFitting<T>::fill_pointWiseErrors(const index_t & num_int, T & max_
   }
   return matrix;
 }
+
 
 // compute the principal curvatures at the given parameters
 template<class T>
@@ -254,7 +257,6 @@ gsMatrix<T> gsFitting<T>::principal_curvatures(const gsMatrix<T> & params)
     return m_pointCurvature;
 
 }
-
 
 
 // compute the inverse of the principal curvatures at the given parameters
@@ -338,6 +340,7 @@ void gsFitting<T>::blending_weights(const gsSparseMatrix<T> & N_int, const index
 
 }
 
+
 // Assemble the linear system for Hybrid Distance Minimization
 template<class T>
 void gsFitting<T>::assembleSystem(const gsMatrix<T> & points_int, const gsMatrix<T> & params_int,
@@ -363,6 +366,7 @@ void gsFitting<T>::assembleSystem(const gsMatrix<T> & points_int, const gsMatrix
 
     A_tilde.makeCompressed();
 }
+
 
 // compute the geometry coefficients with Hybrid Distance Minimization method 
 template<class T>
@@ -497,6 +501,7 @@ bool gsFitting<T>::is_corner(gsMatrix<T> & p_domain,
   return corner_check;
 }
 
+
 // difference with is_point_inside_support in the inclusion of the left and right interval extremes.
 template <class T>
 bool is_point_within_cell(const gsMatrix<T>& parameter,
@@ -509,6 +514,7 @@ bool is_point_within_cell(const gsMatrix<T>& parameter,
            element(1, 0) < y && y < element(1, 1);
 }
 
+
 template <class T>
 bool is_point_within_cell(const T x,
                           const T y,
@@ -517,6 +523,7 @@ bool is_point_within_cell(const T x,
     bool condition = (element(0, 0) < x && x < element(0, 1) && element(1, 0) < y && y < element(1, 1));
     return condition;
 }
+
 
 template <class T>
 bool is_point_inside_support(const gsMatrix<T>& parameter,
@@ -529,6 +536,7 @@ bool is_point_inside_support(const gsMatrix<T>& parameter,
         support(1, 0) <= y && y < support(1, 1);
 }
 
+
 template <class T>
 bool is_point_inside_support(const T x,
                              const T y,
@@ -539,247 +547,16 @@ bool is_point_inside_support(const T x,
 }
 
 
-
-template <class T>
-void gsFitting<T>::parameterCorrectionFixedBoundary(T accuracy,
-                                                    index_t maxIter,
-                                                    T mu, T sigma,
-                                                    const std::vector<index_t>& interpIdx)
-{
-    index_t sepIndex = interpIdx[0];
-
-    if ( !m_result )
-    {
-      compute(m_last_lambda);
-    }
-
-    for (index_t it = 0; it!=maxIter; ++it)
-    {
-
-      gsVector<T> newParam;
-      gsMatrix<T> geoSupport = m_result->support();
-// #     pragma omp parallel for default(shared) private(newParam)
-      for (index_t i = 0; i < sepIndex; ++i)
-      {
-          // gsInfo << "Interior:\n" << newParam << "\n";
-          const auto & curr = m_points.row(i).transpose();
-          newParam = m_param_values.col(i);
-          m_result->closestPointTo(curr, newParam, accuracy, true);
-
-          // Decide whether to accept the correction or to drop it
-          // gsInfo << "Correction:\n" << newParam << "\n";
-          // gsInfo << "On the boundary ? " << "\n";
-          // gsInfo << geoSupport(0,0) << "<" << newParam(0) << "<" << geoSupport(0,1) << "\n";
-          // gsInfo << geoSupport(1,0) << "<" << newParam(1) << "<" << geoSupport(1,1) << "\n";
-          // if( ( geoSupport(0,0) < newParam(0) ) && ( newParam(0) < geoSupport(0,1) ) && ( geoSupport(1,0) < newParam(1) ) && ( newParam(1) < geoSupport(1,1) ) )
-          // {
-            // gsInfo << "And we get here.\n";
-          if ((m_result->eval(newParam) - curr).norm() < (m_result->eval(m_param_values.col(i))- curr).norm()){
-            m_param_values.col(i) = newParam;
-          }
-
-          // (!) There might be the same parameter for two points
-          // or ordering constraints in the case of structured/grid data
-      }
-
-      }
-
-      // refit
-      compute_tdm(m_last_lambda, mu, sigma, interpIdx);
-}
-
-template <class T>
-void gsFitting<T>::parameterCorrectionSepBoundary(T accuracy,
-                                                  index_t maxIter,
-                                                  T mu, T sigma,
-                                                  const std::vector<index_t>& interpIdx)
-{
-  index_t sepIndex = interpIdx[0];
-
-    if ( !m_result )
-      compute(m_last_lambda);
-
-    for (index_t it = 0; it!=maxIter; ++it)
-    {
-
-      gsVector<T> newParam;
-      gsMatrix<T> geoSupport = m_result->support();
-// #     pragma omp parallel for default(shared) private(newParam)
-      for (index_t i = 0; i < sepIndex; ++i)
-      //for (index_t i = 1; i<m_points.rows()-1; ++i) //(!curve) skip first last pt
-      {
-          // gsInfo << "Interior:\n" << newParam << "\n";
-          const auto & curr = m_points.row(i).transpose();
-          newParam = m_param_values.col(i);
-          m_result->closestPointTo(curr, newParam, accuracy, true);
-
-          // Decide whether to accept the correction or to drop it
-          // gsInfo << "Correction:\n" << newParam << "\n";
-          // gsInfo << "On the boundary ? " << "\n";
-          // gsInfo << geoSupport(0,0) << "<" << newParam(0) << "<" << geoSupport(0,1) << "\n";
-          // gsInfo << geoSupport(1,0) << "<" << newParam(1) << "<" << geoSupport(1,1) << "\n";
-          // if( ( geoSupport(0,0) < newParam(0) ) && ( newParam(0) < geoSupport(0,1) ) && ( geoSupport(1,0) < newParam(1) ) && ( newParam(1) < geoSupport(1,1) ) )
-          // {
-            // gsInfo << "And we get here.\n";
-          if ((m_result->eval(newParam) - curr).norm() < (m_result->eval(m_param_values.col(i))- curr).norm()){
-            m_param_values.col(i) = newParam;
-          }
-          //}
-
-          // (!) There might be the same parameter for two points
-          // or ordering constraints in the case of structured/grid data
-      }
-
-      // Correct the parameters, but keep them on the boundary
-
-
-      for (index_t i = sepIndex; i < m_points.rows(); ++i)
-      {
-          gsVector<T> newBoundaryParam(1);
-          gsVector<T> oldBoundaryParam(1);
-          const auto & curr = m_points.row(i).transpose();
-          newParam = m_param_values.col(i);
-
-          //if (!is_corner(geoSupport, newParam)){
-
-            // gsInfo << "West  : " << newParam(0) << "==" << geoSupport(0,0) << "\n";
-            // gsInfo << "East  : " << newParam(0) << "==" << geoSupport(0,1) << "\n";
-            // gsInfo << "South : " << newParam(1) << "==" << geoSupport(1,0) << "\n";
-            // gsInfo << "North : " << newParam(1) << "==" << geoSupport(1,1) << "\n";
-
-
-            gsVector<T> leftParam = m_param_values.col(i);
-            gsVector<T> rightParam = m_param_values.col(i);
-
-            if ( (i==sepIndex) && !is_corner(geoSupport, newParam) ){
-              leftParam = m_param_values.col(m_points.rows()-1);
-              rightParam = m_param_values.col(i+1);
-            }
-
-            if ( (i==m_points.rows()-1) && !is_corner(geoSupport, newParam) ){
-              leftParam = m_param_values.col(i-1);
-              rightParam = m_param_values.col(sepIndex);
-            }
-
-            if ( (i>sepIndex) && (i < m_points.rows()-1) && !is_corner(geoSupport, newParam) ){
-
-              leftParam = m_param_values.col(i-1);
-              rightParam = m_param_values.col(i+1);
-            }
-
-            if( math::abs(newParam(0) - geoSupport(0,0)) < 1e-15 )
-            {
-              // gsInfo << newParam(0) << " == " << geoSupport(0,0) << "\n";
-              // gsInfo << "1 = West-boundary:\n" << newParam << "\n";
-              typename gsGeometry<T>::uPtr b = m_result->boundary(1);
-
-
-              newBoundaryParam << newParam(1);
-              oldBoundaryParam << newParam(1);
-              // gsInfo << "param to optimize: " << newBoundaryParam << "\n";
-              // gsInfo << "West-boundary correction:\n";
-              b->closestPointTo(curr, newBoundaryParam, accuracy, true);
-              // gsInfo << "optimized: " << newBoundaryParam << "\n";
-
-              // assumption: boundary parameters in anti-clockwise order
-              if( (leftParam(1) > newBoundaryParam(0)) && (newBoundaryParam(0) > rightParam(1)) ){
-                newParam(1) = newBoundaryParam(0);
-              }
-              if ((b->eval(newBoundaryParam) - curr).norm() < (b->eval(oldBoundaryParam)- curr).norm()){
-                m_param_values.col(i) = newParam;
-              }
-
-            }
-            else if ( math::abs(newParam(0) - geoSupport(0,1)) < 1e-15 )
-            {
-              // gsInfo << newParam(0) << " == " << geoSupport(0,1) << "\n";
-              // gsInfo << "2 = East-boundary:\n" << newParam << "\n";
-              typename gsGeometry<T>::uPtr b = m_result->boundary(2);
-
-
-              newBoundaryParam << newParam(1);
-              oldBoundaryParam << newParam(1);
-              // gsInfo << "param to optimize: " << newBoundaryParam << "\n";
-              // gsInfo << "East-boundary correction:\n";
-              b->closestPointTo(curr, newBoundaryParam, accuracy, true);
-              // gsInfo << "optimized: " << newBoundaryParam << "\n";
-              if( (leftParam(1) < newBoundaryParam(0)) && (newBoundaryParam(0) < rightParam(1)) ){
-                newParam(1) = newBoundaryParam(0);
-              }
-
-              if ((b->eval(newBoundaryParam) - curr).norm() < (b->eval(oldBoundaryParam)- curr).norm()){
-                m_param_values.col(i) = newParam;
-              }
-
-            }
-            else if ( math::abs(newParam(1) - geoSupport(1,0)) < 1e-15 )
-            {
-              // gsInfo << newParam(1) << " == " << geoSupport(1,0) << "\n";
-              // gsInfo << "3 = South-boundary:\n" << newParam << "\n";
-              typename gsGeometry<T>::uPtr b = m_result->boundary(3);
-
-
-              newBoundaryParam << newParam(0);
-              oldBoundaryParam << newParam(0);
-              // gsInfo << "param to optimize: " << newBoundaryParam << "\n";
-              // gsInfo << "South-boundary correction:\n";
-              b->closestPointTo(curr, newBoundaryParam, accuracy, true);
-              // gsInfo << "optimized: " << newBoundaryParam << "\n";
-              if( (leftParam(0) < newBoundaryParam(0)) && (newBoundaryParam(0) < rightParam(0)) ){
-                newParam(0) = newBoundaryParam(0);
-              }
-
-              if ((b->eval(newBoundaryParam) - curr).norm() < (b->eval(oldBoundaryParam)- curr).norm()){
-                m_param_values.col(i) = newParam;
-              }
-            }
-            else{
-              // gsInfo << newParam(1) << " == " << geoSupport(1,1) << "\n";
-              // gsInfo << i << "-th point:\n" << "\n";
-              // gsInfo << rightParam(0)<< " < " << newParam(0) << " < " << leftParam(0) << "\n";
-              typename gsGeometry<T>::uPtr b = m_result->boundary(4);
-
-              // gsInfo << newParam(1) << "==" << geoSupport(1,1) << "\n";
-              newBoundaryParam << newParam(0);
-              oldBoundaryParam << newParam(0);
-              // gsInfo << "param to optimize: " << newBoundaryParam << "\n";
-              // gsInfo << "North-boundary correction:\n";
-              b->closestPointTo(curr, newBoundaryParam, accuracy, true);
-              // gsInfo << "optimized: " << newBoundaryParam << "\n";
-              // assumption: parameters in anti-clockwise order
-              // gsInfo << "Projection:\n";
-              // gsInfo << rightParam(0)<< " < " << newBoundaryParam(0) << " < " << leftParam(0) << "\n";
-              if( (leftParam(0) > newBoundaryParam(0)) && (newBoundaryParam(0) > rightParam(0)) ){
-                // gsInfo << "Before:\n" << newParam << "\n";
-                newParam(0) = newBoundaryParam(0);
-                // gsInfo << "After:\n" << newParam << "\n";
-              }
-              if ((b->eval(newBoundaryParam) - curr).norm() < (b->eval(oldBoundaryParam)- curr).norm()){
-                m_param_values.col(i) = newParam;
-              }
-            }
-
-
-          //} // corner: to be moved or not.
-      }
-
-      // refit
-      compute_tdm(m_last_lambda, mu, sigma, interpIdx);
-    }
-}
-
+// project the points onto the fitted geometry, separating interior and boundary points
 template <class T>
 void gsFitting<T>::parameterProjectionSepBoundary(T accuracy,const std::vector<index_t>& interpIdx)
 {
-
-  gsInfo << "parameterProjectionSepBoundary(...)\n";
   if ( !m_result )
   {
     compute(m_last_lambda);
   }
 //#       pragma omp parallel for default(shared) private(newParam)
-  gsInfo << "Parameter projection for interior points...\n";
-  index_t trackCorrection = 0;
+  //Parameter projection for interior points
   for (index_t i = 0; i < interpIdx[0]; ++i)
   {
     gsVector<T> newParam;
@@ -792,14 +569,10 @@ void gsFitting<T>::parameterProjectionSepBoundary(T accuracy,const std::vector<i
             < (m_result->eval(m_param_values.col(i)) - curr).norm())
     {
       m_param_values.col(i) = newParam;
-      trackCorrection += 1;
     }
   }
-  gsInfo << "... applied to " << trackCorrection << " interior points, out of " << interpIdx[0] <<".\n";
-      // parameter correction on boundary curves
-      // south: (u,0)
-  gsInfo << "Parameter correction for south boundary points...\n";
-  trackCorrection = 0;
+  
+  // south boundary parameters: (u,0)
   for (index_t i = interpIdx[0]+1; i < interpIdx[1]; ++i)
   {
     gsVector<> newParam(1,1);
@@ -814,11 +587,11 @@ void gsFitting<T>::parameterProjectionSepBoundary(T accuracy,const std::vector<i
             < (b->eval(oldParam) - curr).norm())
     {
     m_param_values(0,i) = newParam(0,0);
-    trackCorrection += 1;
+    
     }
   }
-  gsInfo << "... applied to " << trackCorrection << " south points, out of " << interpIdx[1]-interpIdx[0] <<".\n";
-  // east (1,v)
+  
+  // east boundary parameters: (1,v)
   for (index_t i = interpIdx[1]+1; i < interpIdx[2]; ++i)
   {
     gsVector<> newParam(1,1);
@@ -833,7 +606,7 @@ void gsFitting<T>::parameterProjectionSepBoundary(T accuracy,const std::vector<i
       < (b->eval(oldParam) - curr).norm())
         m_param_values(1,i) = newParam(0,0);
   }
-  //north (u,1)
+  //north boundary parameters: (u,1)
   for (index_t i = interpIdx[2]+1; i < interpIdx[3]; ++i)
   {
     gsVector<> newParam(1,1);
@@ -848,7 +621,7 @@ void gsFitting<T>::parameterProjectionSepBoundary(T accuracy,const std::vector<i
       < (b->eval(oldParam) - curr).norm())
       m_param_values(0,i) = newParam(0,0);
   }
-  //west (0,v)
+  //west boundary parameters: (0,v)
   for (index_t i = interpIdx[3]+1; i < m_points.rows(); ++i)
   {
     gsVector<> newParam(1,1);
@@ -864,42 +637,6 @@ void gsFitting<T>::parameterProjectionSepBoundary(T accuracy,const std::vector<i
         m_param_values(1,i) = newParam(0,0);
   }
 }
-
-
-
-
-
-template <class T>
-void gsFitting<T>::parameterProjectionFixedBoundary(T accuracy,const std::vector<index_t>& interpIdx)
-{
-
-  gsInfo << "parameterProjectionSepBoundary(...)\n";
-  if ( !m_result )
-  {
-    compute(m_last_lambda);
-  }
-//#       pragma omp parallel for default(shared) private(newParam)
-  gsInfo << "Parameter projection for interior points...\n";
-  index_t trackCorrection = 0;
-  for (index_t i = 0; i < interpIdx[0]; ++i)
-  {
-    gsVector<T> newParam;
-    const auto & curr = m_points.row(i).transpose();
-    newParam = m_param_values.col(i);
-    m_result->closestPointTo(curr, newParam, accuracy, true); // true: use initial point
-
-    // Decide whether to accept the correction or to drop it
-    if ((m_result->eval(newParam) - curr).norm()
-            < (m_result->eval(m_param_values.col(i)) - curr).norm())
-    {
-      m_param_values.col(i) = newParam;
-      trackCorrection += 1;
-    }
-  }
-  gsInfo << "... applied to " << trackCorrection << " interior points, out of " << interpIdx[0] <<".\n";
-}
-
-
 
 
 // apply maxIter steps of parameter correction for HDM method, separating interior and boundary points
@@ -925,6 +662,7 @@ void gsFitting<T>::parameterCorrectionSepBoundary_tdm(T accuracy,
     }// step of PC
 }
 
+
 // apply maxIter steps of parameter correction for PDM method, separating interior and boundary points
 template <class T>
 void gsFitting<T>::parameterCorrectionSepBoundary_pdm(T accuracy,
@@ -941,7 +679,6 @@ void gsFitting<T>::parameterCorrectionSepBoundary_pdm(T accuracy,
     for (index_t it = 0; it<maxIter; ++it)
     {
 //#  pragma omp parallel for default(shared) private(newParam)
-      gsInfo << "(a.) Projections.\n";
       parameterProjectionSepBoundary(accuracy, interpIdx); // projection of the points  on the geometry
       compute(m_last_lambda); // updates of the coefficients with PDM
     }// step of PC
@@ -987,6 +724,7 @@ void gsFitting<T>::parameterCorrection(T accuracy,
 }
 
 
+// assemble the global system for least-squares fitting
 template <class T>
 void gsFitting<T>::assembleSystem(gsSparseMatrix<T>& A_mat,
                                   gsMatrix<T>& m_B)
@@ -1027,6 +765,8 @@ void gsFitting<T>::assembleSystem(gsSparseMatrix<T>& A_mat,
     }
 }
 
+
+// Extends the system of equations by taking constraints into account
 template <class T>
 void gsFitting<T>::extendSystem(gsSparseMatrix<T>& A_mat,
 				gsMatrix<T>& m_B)
@@ -1050,6 +790,8 @@ void gsFitting<T>::extendSystem(gsSparseMatrix<T>& A_mat,
     }
 }
 
+
+// compute the smoorhing matrix
 template<class T>
 gsSparseMatrix<T> gsFitting<T>::smoothingMatrix(T lambda) const
 {
@@ -1066,6 +808,8 @@ gsSparseMatrix<T> gsFitting<T>::smoothingMatrix(T lambda) const
     return A_mat;
 }
 
+
+// apply smoothing to the system of equations
 template<class T>
 void gsFitting<T>::applySmoothing(T lambda, gsSparseMatrix<T> & A_mat)
 {
@@ -1155,28 +899,77 @@ void gsFitting<T>::applySmoothing(T lambda, gsSparseMatrix<T> & A_mat)
     }
 }
 
+
+// compute the approximation errors
 template<class T>
 void gsFitting<T>::computeErrors()
 {
     m_pointErrors.clear();
 
     gsMatrix<T> val_i;
-    //->eval_into(m_param_values.col(0), val_i);
     m_result->eval_into(m_param_values, val_i);
     m_pointErrors.push_back( (m_points.row(0) - val_i.col(0).transpose()).norm() );
     m_max_error = m_min_error = m_pointErrors.back();
 
     for (index_t i = 1; i < m_points.rows(); i++)
     {
-        //m_result->eval_into(m_param_values.col(i), val_i);
-
         const T err = (m_points.row(i) - val_i.col(i).transpose()).norm() ;
-
         m_pointErrors.push_back(err);
 
         if ( err > m_max_error ) m_max_error = err;
         if ( err < m_min_error ) m_min_error = err;
     }
+}
+
+
+template<class T>
+gsMatrix<T> gsFitting<T>::pointWiseErrors(const gsMatrix<> & parameters,const gsMatrix<> & points)
+{
+
+  gsMatrix<T> eval;
+  m_result->eval_into(parameters, eval);
+  gsMatrix<T> ptwErrors(1, eval.cols());
+
+  for (index_t col = 0; col != eval.cols(); col++)
+  {
+      ptwErrors(0, col) = (eval.col(col) - points.col(col)).norm();
+  }
+
+  return ptwErrors;
+}
+
+
+template<class T>
+std::vector<T> gsFitting<T>::computeErrors(const gsMatrix<> & parameters,const gsMatrix<> & points)
+{
+  std::vector<T> min_max_mse;
+  gsMatrix<T> eval;
+  m_result->eval_into(parameters, eval);
+
+  gsMatrix<T> pointWiseErrors(1, eval.cols());
+
+  for (index_t col = 0; col != eval.cols(); col++)
+  {
+      pointWiseErrors(0, col) = (eval.col(col) - points.col(col)).norm();
+  }
+
+  T min_error = 1e6;
+  T max_error = 0;
+  T mse_error = 0;
+
+  for (index_t i = 1; i < pointWiseErrors.cols(); i++)
+  {
+    const real_t err = pointWiseErrors(0,i) ;
+    mse_error += err * err ;
+    if ( err > max_error ) max_error = err;
+    if ( err < min_error ) min_error = err;
+  }
+
+  min_max_mse.push_back(min_error);
+  min_max_mse.push_back(max_error);
+  min_max_mse.push_back(mse_error/pointWiseErrors.cols());
+
+  return min_max_mse;
 }
 
 
@@ -1242,56 +1035,6 @@ void gsFitting<T>::computeApproxError(T& error, int type) const
     }
 }
 
-
-template<class T>
-gsMatrix<T> gsFitting<T>::pointWiseErrors(const gsMatrix<> & parameters,const gsMatrix<> & points)
-{
-
-  gsMatrix<T> eval;
-  m_result->eval_into(parameters, eval);
-  gsMatrix<T> ptwErrors(1, eval.cols());
-
-  for (index_t col = 0; col != eval.cols(); col++)
-  {
-      ptwErrors(0, col) = (eval.col(col) - points.col(col)).norm();
-  }
-
-  return ptwErrors;
-}
-
-
-template<class T>
-std::vector<T> gsFitting<T>::computeErrors(const gsMatrix<> & parameters,const gsMatrix<> & points)
-{
-  std::vector<T> min_max_mse;
-  gsMatrix<T> eval;
-  m_result->eval_into(parameters, eval);
-
-  gsMatrix<T> pointWiseErrors(1, eval.cols());
-
-  for (index_t col = 0; col != eval.cols(); col++)
-  {
-      pointWiseErrors(0, col) = (eval.col(col) - points.col(col)).norm();
-  }
-
-  T min_error = 1e6;
-  T max_error = 0;
-  T mse_error = 0;
-
-  for (index_t i = 1; i < pointWiseErrors.cols(); i++)
-  {
-    const real_t err = pointWiseErrors(0,i) ;
-    mse_error += err * err ;
-    if ( err > max_error ) max_error = err;
-    if ( err < min_error ) min_error = err;
-  }
-
-  min_max_mse.push_back(min_error);
-  min_max_mse.push_back(max_error);
-  min_max_mse.push_back(mse_error/pointWiseErrors.cols());
-
-  return min_max_mse;
-}
 
 template<class T>
 void gsFitting<T>::get_Error(std::vector<T>& errors, int type) const

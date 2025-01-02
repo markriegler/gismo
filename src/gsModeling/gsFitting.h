@@ -125,11 +125,17 @@ public:
                              index_t maxIter = 10,
                              T tolOrth = 1e-6);
 
-    void parameterCorrection_tdm(T accuracy, index_t maxIter, T mu, T sigma, const std::vector<index_t>& interpIdx);
-    void parameterCorrectionSepBoundary(T accuracy, index_t maxIter, T mu, T sigma, const std::vector<index_t>& sepIndex);
-
+    /** @brief parameterProjectionSepBoundary: project the points onto the fitted geometry, separating interior and boundary points
+     * @param accuracy accuracy of the closest point computation, for the foot-point projection
+     * @param interpIdx vector containing the number of interior points and the indices of the boundary points
+     */
     void parameterProjectionSepBoundary(T accuracy,const std::vector<index_t>& interpIdx);
-    void parameterProjectionFixedBoundary(T accuracy,const std::vector<index_t>& interpIdx);
+    
+    /** @brief parameterCorrectionSepBoundary_pdm: apply \a maxIter steps of parameter correction for PDM method, separating interior and boundary points
+     * @param accuracy accuracy of the closest point computation
+     * @param maxIter maximum number of parameter correction steps
+     * @param sepIndex vector containing the number of interior points and the indices of the boundary points
+     */
     void parameterCorrectionSepBoundary_pdm(T accuracy, index_t maxIter, const std::vector<index_t>& sepIndex);
     
     /** @brief parameterCorrectionSepBoundary_tdm: apply \a maxIter steps of parameter correction for HDM method, separating interior and boundary points
@@ -142,27 +148,30 @@ public:
     */
     void parameterCorrectionSepBoundary_tdm(T accuracy, index_t maxIter, T mu, T sigma, const std::vector<index_t>& sepIndex, tdm_method method = hybrid_curvature_pdm_tdm_boundary_pdm);
     
-    
-
-    void parameterCorrectionFixedBoundary(T accuracy, index_t maxIter, T mu, T sigma, const std::vector<index_t>& interpIdx);
-
-
-    /// Computes the euclidean error for each point
+    /// Computes the point-wise errors in euclidean norm as well as the max and min errors,
+    /// and updates the member variables \a m_pointErrors, \a m_max_error, \a m_min_error;
+    /// different from \ref computeMaxNormErrors(), where the error is computed in inifinity/maximum norm
     void computeErrors();
 
-    /// compute point-wise error
+    /// Compute point-wise error in euclidean norm between the fitted geometry at the parameters \a parameters and the input point cloud \a points
+    /// similar to \ref computeErrors(), but different input and output format; it does not update the member variables
     gsMatrix<T> pointWiseErrors(const gsMatrix<> & parameters,const gsMatrix<> & points);
 
-    /// Computes min, max and mse errors
+    /// Computes min, max and mse errors in euclidean norms between the fitted geometry at the parameters \a param_values and the input point cloud \a points
+    /// it does not update the member variables
     std::vector<T> computeErrors(const gsMatrix<> & param_values,const gsMatrix<> & points);
 
-    /// Computes the maximum norm error for each point
+    /// Computes the point-wise errors in infinity/maximum norm as well as the max and min errors,
+    /// and updates the member variables \a m_pointErrors, \a m_max_error, \a m_min_error;
+    /// different from \ref computeErrors(), where the error is computed in euclidean norm
     void computeMaxNormErrors();
 
-    /// Computes the approximation error of the fitted curve to the original point cloud
+    /// Computes the approximation error \a error of the fitted geometry to the original point cloud
+    /// \a type = 0: sum of squares, \a type = 1: sum of absolute values (l_1 norm)
     void computeApproxError(T & error, int type = 0) const;
 
-    ///return the errors for each point
+    /// Compute the point-wise errors for each point
+    /// \a type = 0: point-wise infinity/maximum norm, \a type = 1: point-wise squared inifinity/maximum norm
     void get_Error(std::vector<T>& errors, int type = 0) const;
 
     /// Returns the minimum point-wise error from the pount cloud (or zero if not fitted)
@@ -288,6 +297,7 @@ public:
     void setConstraints(const std::vector<boxSide>& fixedSides,
             const std::vector<gsGeometry<T> * >& fixedCurves);
 
+    /// Initialize the parametric domain of the point cloud
     void initParametricDomain()
     {
         m_uMin = m_param_values.row(0).minCoeff();
@@ -300,6 +310,7 @@ public:
                << m_vMin << ", " << m_vMax << "]" << std::endl;
     }
 
+    /// Returns the smoothing weight used in the last fitting
     T lambda() const {return m_last_lambda;}
 
 

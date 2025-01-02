@@ -459,6 +459,7 @@ bool gsHFitting<d, T>::nextIteration_tdm(T tolerance, T err_threshold,
 
 
     // apply maxPcIter parameter correction steps separating interior and boundary points
+    gsInfo << "Parameter correction: parameterCorrectionSepBoundary_tdm\n";
     this->parameterCorrectionSepBoundary_tdm(1e-6, maxPcIter, mu, sigma, interpIdx, method); // refit
 
     // ESTIMATE the point-wise approximation error

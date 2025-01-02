@@ -472,7 +472,7 @@ int main(int argc, char *argv[])
 {
     bool apdm = false; // a, run a-pdm
     index_t verbosity = 1; // b, b=2 prints a lot of gsInfo
-    index_t maxPcIter = 0; // c, parameter correction steps
+    index_t maxPcIter = 3; // c, parameter correction steps
     index_t deg = 2; // d, fitting degree
     real_t tolerance = 1e-4; // e hierarchical refinement tolerance
     std::string fn = "../filedata/fitting/shipHullPts55_scale01.xml"; // f, string file input data
@@ -621,6 +621,8 @@ int main(int argc, char *argv[])
     index_t c2 = corners[1];
     index_t c3 = corners[2];
     index_t c4 = corners[3];
+
+    gsInfo << "Corners: " << c1 << ", " << c2 << ", " << c3 << ", " << c4 << "\n";
 
     gsWriteParaviewPoints(uv, "parameters");
     gsWriteParaviewPoints(X, "points_x");
