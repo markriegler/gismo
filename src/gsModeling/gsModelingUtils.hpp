@@ -793,7 +793,6 @@ typename gsTensorBSpline<2,T>::Ptr gsInterpolateSurface(
 
 
         std::vector<index_t> tmp = uv_south.idxByColumn(0);
-        // gsDebugVar(uv_south);
         p_south.resize(tmp_south.rows(), tmp_south.cols());
         for(size_t i = 0; i<tmp.size(); i++)
         {
@@ -804,7 +803,6 @@ typename gsTensorBSpline<2,T>::Ptr gsInterpolateSurface(
 
         tmp.clear();
         tmp = uv_east.idxByColumn(1);
-        // gsDebugVar(uv_east);
         p_east.resize(tmp_east.rows(), tmp_east.cols());
         for(size_t i = 0; i<tmp.size(); i++)
         {
@@ -816,14 +814,11 @@ typename gsTensorBSpline<2,T>::Ptr gsInterpolateSurface(
         tmp.clear();
         tmp = uv_north.idxByColumn(0);
         std::reverse(tmp.begin(),tmp.end());
-        // gsDebugVar(uv_north);
         gsVector<T> tcol = uv_north.col(0).reverse();
         uv_north.col(0) = tcol;
         tcol = uv_north.col(1).reverse();
         uv_north.col(1) = tcol;
-        // gsDebugVar(uv_north);
-        // for (std::vector<index_t>::iterator it = tmp.begin(); it != tmp.end(); ++it)
-        //   gsInfo << *it <<"\n";
+        
         p_north.resize(tmp_north.rows(), tmp_north.cols());
         for(size_t i = 0; i<tmp.size(); i++)
         {
@@ -833,12 +828,10 @@ typename gsTensorBSpline<2,T>::Ptr gsInterpolateSurface(
 
         tmp.clear();
         tmp = uv_west.idxByColumn(1);
-        // gsDebugVar(uv_west);
         tcol = uv_west.col(0).reverse();
         uv_west.col(0) = tcol;
         tcol = uv_west.col(1).reverse();
         uv_west.col(1) = tcol;
-        // gsDebugVar(uv_west);
         std::reverse(tmp.begin(),tmp.end());
 
         p_west.resize(tmp_west.rows(), tmp_west.cols());
@@ -861,6 +854,15 @@ typename gsTensorBSpline<2,T>::Ptr gsInterpolateSurface(
 
     } // end sortPointCloud
 
+
+    
+    /** \brief sampleGridGeometry: samples a grid point cloud from a given geometry
+    * @param mp : input multi-patch
+    * @param numPatch : patch number
+    * @param numSamples : number of samples in each direction
+    * @param params : output parameters
+    * @param points : output points 
+    */
     template<class T>
     void sampleGridGeometry(const gsMultiPatch<T> & mp,
                             const index_t & numPatch,
@@ -869,15 +871,123 @@ typename gsTensorBSpline<2,T>::Ptr gsInterpolateSurface(
                             gsMatrix<T> & points)
     {
         GISMO_ASSERT( numPatch <= mp.nPatches()-1 , "Patch number not found, quitting.");
+        
         const gsGeometry<T> & geometry = mp.patch(numPatch);
-        //gsMatrix<> ab = geometry.support();
-
+        
         gsVector<unsigned> numPtsVec(2);
         numPtsVec<<numSamples,numSamples;
         gsVector<T> a = geometry.support().col(0);
         gsVector<T> b = geometry.support().col(1);
+        
         params = gsPointGrid(a,b, numPtsVec);
         geometry.eval_into(params, points);
     }
+
+
+    /** \brief sampleScatteredGeometry: samples a scattered point cloud from a given geometry
+     * @param mp : input multi-patch
+     * @param numPatch : patch number
+     * @param numSamples : number of interior samples
+     * @param numBdr : number of boundary samples
+     * @param params : output parameters
+     * @param points : output points 
+     */
+    template<class T>
+    void sampleScatteredGeometry(const gsMultiPatch<T> & mp,
+                                const index_t & numPatch,
+                                const index_t & numSamples,
+                                index_t & numBdr,
+                                gsMatrix<T> & params,
+                                gsMatrix<T> & points)
+    {
+        GISMO_ASSERT( numPatch <= mp.nPatches()-1 , "Patch number not found, quitting.");
+        
+        const gsGeometry<T> & geometry = mp.patch(numPatch);
+        
+
+        // Sample the interior parameters
+        gsVector<unsigned> numPtsVec(2);
+        numPtsVec<<numSamples,numSamples;
+        gsVector<T> a = geometry.support().col(0);
+        gsVector<T> b = geometry.support().col(1);
+        
+        T urange= b(0)-a(0); // umax - umin
+        
+        gsMatrix<T> mu = gsMatrix<T>::Random(1,numSamples); // 3x3 Matrix filled with random numbers between (-1,1)
+        mu = (mu + gsMatrix<T>::Constant(1,numSamples,1))*urange/2.; // add 1 to the matrix to have values between 0 and 2; multiply with range/2
+        mu = (mu + gsMatrix<T>::Constant(1,numSamples,a(0))); //set LO as the lower bound (offset)
+
+        T vrange= b(1)-a(1); // vmax - vmin
+        gsMatrix<T> mv= gsMatrix<T>::Random(1,numSamples); // 3x3 Matrix filled with random numbers between (-1,1)
+        mv = (mv + gsMatrix<T>::Constant(1,numSamples,1))*vrange/2.; // add 1 to the matrix to have values between 0 and 2; multiply with range/2
+        mv = (mv + gsMatrix<T>::Constant(1,numSamples,a(1))); //set LO as the lower bound (offset)
+        
+        gsMatrix<T> uv_interiors(2, numSamples);
+        uv_interiors << mu, mv; //interior parameters
+
+        // Sample the boundary and the corner parameters
+        if (numBdr < 2)
+            numBdr = math::ceil(math::sqrt(numSamples)) + 2; // number of boundary points
+        
+        gsMatrix<T> uv_boundary(2, numBdr*4-4);
+        gsMatrix<T> b_0(1, numBdr-1);
+        gsMatrix<T> b_1(1, numBdr-1);
+        gsMatrix<T> b_2(1, numBdr-1);
+        gsMatrix<T> b_3(1, numBdr-1);
+
+        for (index_t pace=0; pace < 4; pace++)
+        {
+            if (pace == 0){
+                gsMatrix<T> mu = gsMatrix<T>::Random(numBdr-2, 1); // 1xnumBdr-1 Matrix filled with random numbers between (-1,1)
+                mu = (mu + gsMatrix<T>::Constant(numBdr-2, 1, 1))*urange/2.; // add 1 to the matrix to have values between 0 and 2; multiply with range/2
+                mu = (mu + gsMatrix<T>::Constant(numBdr-2,1,a(0))); //set LO as the lower bound (offset)
+                mu.sortByColumn(0);
+                mu = mu.reshape(1, numBdr-2);
+                b_0 << a(0), mu;
+            }
+            if (pace == 1){
+                gsMatrix<T> mu = gsMatrix<T>::Random(numBdr-2, 1); // 1xnumBdr-1 Matrix filled with random numbers between (-1,1)
+                mu = (mu + gsMatrix<T>::Constant(numBdr-2, 1, 1))*vrange/2.; // add 1 to the matrix to have values between 0 and 2; multiply with range/2
+                mu = (mu + gsMatrix<T>::Constant(numBdr-2,1, a(1))); //set LO as the lower bound (offset)
+                mu.sortByColumn(0);
+                mu = mu.reshape(1, numBdr-2);
+                b_1 << a(1), mu;
+            }
+            if (pace == 2){
+                gsMatrix<T> mu = gsMatrix<T>::Random(numBdr-2, 1); // 1xnumBdr-1 Matrix filled with random numbers between (-1,1)
+                mu = (mu + gsMatrix<T>::Constant(numBdr-2, 1, 1))*urange/2.; // add 1 to the matrix to have values between 0 and 2; multiply with range/2
+                mu = (mu + gsMatrix<T>::Constant(numBdr-2,1,a(0))); //set LO as the lower bound (offset)
+                mu.sortByColumn(0);
+                mu = mu.reshape(1, numBdr-2);
+                b_2 << b(0), mu.reverse();
+            }
+            if (pace == 3){
+                gsMatrix<T> mu = gsMatrix<T>::Random(numBdr-2, 1); // 1xnumBdr-1 Matrix filled with random numbers between (-1,1)
+                mu = (mu + gsMatrix<T>::Constant(numBdr-2, 1, 1))*vrange/2.; // add 1 to the matrix to have values between 0 and 2; multiply with range/2
+                mu = (mu + gsMatrix<T>::Constant(numBdr-2,1,a(1))); //set LO as the lower bound (offset)
+                mu.sortByColumn(0);
+                mu = mu.reshape(1, numBdr-2);
+                b_3 << b(1), mu.reverse();
+            }
+        }
+
+        gsMatrix<T> u_zeros = gsMatrix<T>::Constant(1, numBdr-1, a(1));
+        gsMatrix<T> v_zeros = gsMatrix<T>::Constant(1, numBdr-1, a(0));
+        gsMatrix<T> u_ones = gsMatrix<T>::Constant(1, numBdr-1, b(1));
+        gsMatrix<T> v_ones = gsMatrix<T>::Constant(1, numBdr-1, b(0));
+        gsMatrix<T> zeros = gsMatrix<T>::Zero(1, numBdr-1);
+        gsMatrix<T> ones  = gsMatrix<T>::Ones(1, numBdr-1);
+
+    
+        uv_boundary << b_0,     v_ones, b_2,    v_zeros, u_zeros, b_1,    u_ones, b_3;
+
+        params.resize(2, numSamples + numBdr*4-4);
+        params << uv_interiors, uv_boundary;
+
+        geometry.eval_into(params, points);
+
+    }
+
+
 
 } // namespace gismo

@@ -15,6 +15,9 @@
 #include <string>
 #include <iostream>
 #include <gsEigen/Dense>
+#include <algorithm>
+#include <random>
+#include <gsModeling/gsModelingUtils.hpp>
 
 using namespace gismo;
 
@@ -296,8 +299,8 @@ int main(int argc, char *argv[])
       gsMatrix<> x_I(2, numPts + 5 * morePts);
       x_I << uv_interiors, uv_more;
       gsEigen::PermutationMatrix<Dynamic,Dynamic> perm(x_I.cols());
-      perm.setIdentity();
-      std::random_shuffle(perm.indices().data(), perm.indices().data()+perm.indices().size());
+      std::shuffle(perm.indices().data(), perm.indices().data()+perm.indices().size(), std::default_random_engine());
+      std::shuffle(perm.indices().data(), perm.indices().data()+perm.indices().size(), std::default_random_engine());
       gsMatrix<> A_perm = x_I * perm; // permute columns
       //A_perm = perm * A; // permute rows
 
@@ -315,6 +318,19 @@ int main(int argc, char *argv[])
     gsMatrix<> xyz;
     geo[numPatch]->eval_into(uv, xyz);
     gsWriteParaviewPoints(xyz, "points");
+
+    gsMatrix<> paramsViaFun, pointsViaFun; 
+    gsMultiPatch<> mp = *geo[numPatch];
+    sampleScatteredGeometry(mp, numPatch, totPts, numBts, paramsViaFun, pointsViaFun);
+
+    gsWriteParaviewPoints(paramsViaFun, "paramsViaFun");
+    gsWriteParaviewPoints(pointsViaFun, "pointsViaFun");
+
+    gsInfo << "Comparison of the two methods:\n";
+    gsInfo << (paramsViaFun - uv).maxCoeff() << "\n";
+    gsInfo << (paramsViaFun - uv).minCoeff() << "\n";
+    gsInfo << (pointsViaFun - xyz).maxCoeff() << "\n";
+    gsInfo << (pointsViaFun - xyz).minCoeff() << "\n";
 
 
     gsMatrix<> uv_normalized = uv;
@@ -342,6 +358,9 @@ int main(int argc, char *argv[])
     geo[p]->eval_into(uv, pp);
     gsWriteParaviewPoints(pp, "datapatch" + internal::to_string(p));
     }
+
+
+
 
     return 0;
 }
