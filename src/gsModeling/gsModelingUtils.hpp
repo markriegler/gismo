@@ -655,5 +655,35 @@ typename gsTensorBSpline<2,T>::Ptr gsInterpolateSurface(
     return master;
 }
 
+/**
+       Constructs a gsSparseMatrix<T> with \a rows rows and \a cols
+       cols with block repeated three times along the diagonal and
+       saves it to \a result.
+
+       TODO: Make more general.
+     */
+    template<class T>
+    void threeOnDiag(const gsSparseMatrix<T>& block,
+                    gsSparseMatrix<T>& result) //const
+    {
+
+      index_t brows = block.rows();
+      index_t bcols = block.cols();
+
+      result = gsSparseMatrix<T>(3*brows,3*bcols);
+      result.reservePerColumn(block.nonZeros() / bcols);
+
+      for(index_t j = 0; j != bcols; j++)
+      {
+        for (auto it = block.begin(j); it; ++it)
+        {
+            result.insertTo(it.row(), j, it.value());
+            result.insertTo(brows+it.row(), bcols+j, it.value());
+            result.insertTo(2*brows+it.row(), 2*bcols+j, it.value());
+        }
+      }
+      result.makeCompressed();
+    }
+
 
 } // namespace gismo
