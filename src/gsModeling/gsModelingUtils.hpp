@@ -15,7 +15,7 @@
 #include <iostream>
 #include <gsCore/gsLinearAlgebra.h>
 #include <gsNurbs/gsTensorBSpline.h>
-
+#include <gsIO/gsFileData.h>
 #include <gsAssembler/gsGaussRule.h>
 
 
@@ -694,6 +694,129 @@ typename gsTensorBSpline<2,T>::Ptr gsInterpolateSurface(
 
         points.resize(xyz.rows(), xyz.cols());
         points = (1/den)*(xyz - p_min * gsMatrix<T>::Ones(xyz.rows(), xyz.cols()));
+    }
+
+
+    /// Scale the interval [tMin, tMax] to [0, 1].
+    template<class T>
+    T scaleTo01(T tMin, T t, T tMax)
+    {
+	    return (t - tMin) / (tMax - tMin);
+    }
+
+    /// Scale the matrix \a mT entries to [0, 1].
+    template <class T>
+    void scaleTo01(real_t tMin, gsMatrix<T>& mT, real_t tMax)
+    {
+	    for(index_t i=0; i<mT.rows(); i++)
+		    for(index_t j=0; j<mT.cols(); j++)
+			    mT(i, j) = scaleTo01(tMin, mT(i, j), tMax);
+    }
+
+    /// Scale the matrix \a xyz entries to [0, 1]^D.
+    template <class T>
+    void scaleTo01(gsMatrix<T>& xyz, bool verbose)
+    {
+	    T xyzMin = xyz.minCoeff();
+	    T xyzMax = xyz.maxCoeff();
+	    scaleTo01(xyzMin, xyz, xyzMax);
+
+	    if(verbose)
+		    gsInfo << std::setprecision(15)
+			       << "Scaling TO [0, 1]^3 as follows.\n"
+			       << "min:   " << xyzMin << "\n"
+			       << "max:   " << xyzMax << "\n"
+			       << "scale: " << T(1.0) / (xyzMax - xyzMin) << std::endl;
+    }
+
+
+    /// Scale the inteval [0,1] to [tMin, tMax].
+    template <class T>
+    T scaleFrom01(T tMin, T t, T tMax)
+    {
+	    return (tMax - tMin) * t + tMin;
+    }
+
+
+    /// Scale the matrix \a mT entries from [0, 1] to [tMin, tMax].
+    template <class T>
+    void scaleFrom01(T tMin, gsMatrix<T>& mT, T tMax, bool verbose)
+    {
+	    for(index_t i=0; i<mT.rows(); i++)
+		    for(index_t j=0; j<mT.cols(); j++)
+			    mT(i, j) = scaleFrom01(tMin, mT(i, j), tMax);
+
+	    if(verbose)
+		    gsInfo << "Scaling FROM [0, 1]^3.\n"
+			       << "inverted scale: " << T(1.0) / (tMax - tMin) << std::scientific << std::endl;
+    }
+
+
+    /// Scale the geometry \a geo from [0, 1]^D to [tMin, tMax]^D.
+    template <class T>
+    void scaleFrom01(T tMin, gsGeometry<T>& geo, T tMax, bool verbose)
+    {
+	    gsMatrix<T> coefs = geo.coefs();
+	    scaleFrom01(tMin, coefs, tMax, verbose);
+	    geo.coefs() = coefs;
+    }
+
+
+    /// Scale the geometry contained in file \a fin from [0, 1]^D to [tMin, tMax]^D and save it to \a fout.
+    template <class T>
+    void scaleGeo(const std::string& fin,
+			      const std::string& fout,
+			      T tMin,
+			      T tMax,
+			      bool verbose)
+    {
+	    gsFileData<T> fdIn(fin);
+	    typename gsGeometry<T>::uPtr geo = fdIn.template getFirst< gsGeometry<T> >();
+	    scaleFrom01(tMin, *geo.get(), tMax, verbose);
+	    gsFileData<T> fdOut;
+	    fdOut << *geo.get();
+	    fdOut.dump(fout);
+    }
+    
+    
+    /// Scale the points contained in file \a fin from [0, 1]^D to [tMin, tMax]^D and save it to \a fout.
+    template <class T>
+    void scalePts(const std::string& fin,
+                  const std::string& fout,
+			      index_t uvIdIn,
+			      index_t uvIdOut,
+			      index_t xyzIdIn,
+			      index_t xyzIdOut,
+			      T tMin,
+			      T tMax,
+			      bool verbose)
+    {
+        // Reading the inputs.
+        gsFileData<T> fdIn(fin);
+        gsMatrix<T> xyz, uv;
+        fdIn.template getId<gsMatrix<T>>(uvIdIn,  uv);
+        fdIn.template getId<gsMatrix<T>>(xyzIdIn, xyz);
+
+        // Scaling the data.
+        if(tMax < tMin) // defaults, i.e., scaling down
+            scaleTo01(xyz, verbose);
+        else
+            scaleFrom01(tMin, xyz, tMax, verbose);
+
+        // Writing the outputs
+        gsFileData<T> fdOut;
+
+        if(uvIdOut < xyzIdOut)
+        {
+            fdOut << uv;
+            fdOut << xyz;
+        }
+        else
+        {
+            fdOut << xyz;
+            fdOut << uv;
+        }
+        fdOut.dump(fout);
     }
 
     
