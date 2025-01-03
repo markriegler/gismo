@@ -25,7 +25,7 @@
 ![Static Badge](https://img.shields.io/badge/Python-008A00)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pygismo?label=versions&color=008A00) 
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/pygismo?color=008A00)
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/gismo/gismo/build_wheels.yml?label=wheel%20builds&color=008A00)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflaow/status/gismo/gismo/build_wheels.yml?label=wheel%20builds&color=008A00)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/gismo/try_gismo/HEAD?labpath=python)
 
 ![Static Badge](https://img.shields.io/badge/Julia-008A00)
@@ -40,7 +40,7 @@
 | [CDash](https://cdash-ci.irisa.fr/index.php?project=Gismo) | [![cdash](https://img.shields.io/website?down_color=lightgrey&down_message=offline&label=CDash&up_color=008A00&up_message=up&url=https%3A%2F%2Fcdash-ci.irisa.fr%2Findex.php%3Fproject%3DGismo)](https://cdash-ci.irisa.fr/index.php?project=Gismo) | Report results from all builds |
 | [Circle CI](https://circleci.com/gh/gismo/gismo) | [![CircleCI](https://img.shields.io/circleci/build/github/gismo/gismo)](https://cdash-ci.irisa.fr/index.php?project=Gismo&filtercount=1&field1=site&compare1=63&value1=[circleci]) | MacOS XCode 14.3 (x86_64/arm64) |
 | [GitLab](https://gitlab.com/gismo-ci/gismo/-/pipelines)    | [![Gitlab Pipeline Status](https://img.shields.io/gitlab/pipeline-status/gismo-ci%2Fgismo?branch=stable)](https://cdash-ci.irisa.fr/index.php?project=Gismo&filtercount=1&field1=site&compare1=63&value1=[gitlab-ci]) | Linux non-default configurations |
-| [GitHub Actions](https://github.com/gismo/gismo/actions) | [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/gismo/gismo/gismo.yml?branch=stable)](https://cdash-ci.irisa.fr/index.php?project=Gismo&filtercount=1&field1=site&compare1=63&value1=[actions]) | Latest Linux/MacOS/Windows |
+| [GitHub Actions](https://github.com/gismo/gismo/actions) | [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/gismo/gismo/gismo.yml?branch=stable)](https://cdash-ci.irisa.fr/index.php?project=Gismo&filtercount=1&field1=site&compare1=63&value1=[github]) | Latest Linux/MacOS/Windows |
 | GCC Farm | [Status](https://cdash-ci.irisa.fr/index.php?project=Gismo&filtercount=1&field1=site&compare1=63&value1=[gccfarm]) | Builders from the GCC Farm   |
 | [OBS](https://build.opensuse.org/package/show/home:filiatra/gismo) | [binaries](https://software.opensuse.org/download/package?project=home:filiatra&package=gismo)  | Upstream package builds for many Linux distributions |
 | [Launchpad](https://code.launchpad.net/~g+smo/+recipe/g+smo-daily) |[binaries](https://launchpad.net/~g+smo/+archive/ubuntu/upstream/+packages)  | Upstream package builds for Ubuntu distributions |
