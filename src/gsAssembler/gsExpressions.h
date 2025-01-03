@@ -1102,7 +1102,8 @@ public:
             {
                 for (gsBoxTopology::const_iiterator it = mb->topology().iBegin();
                      it != mb->topology().iEnd(); ++it) {
-                    mb->matchInterface(*it, m_sd->mapper);
+                    if ( it->type() != interaction::contact ) // If the interface type is 'contact' ignore it.
+                        mb->matchInterface(*it, m_sd->mapper);
                 }
             }
 
@@ -1586,7 +1587,12 @@ public:
     // insert g-coefficients to the solution vector
     void insert(const gsGeometry<T> & g, const index_t p = 0) const
     {
-        const gsMatrix<T> & cf = g.coefs();
+        insert(g.coefs(), p);
+    }
+
+    // insert g-coefficients to the solution vector
+    void insert(const gsMatrix<T> & cf, const index_t p = 0) const
+    {
         gsMatrix<T> & sol = *_Sv;
         //gsMatrix<T> & fixedPart = _u.fixedPart();
         const gsDofMapper & mapper = _u.mapper();
