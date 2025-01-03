@@ -341,9 +341,9 @@ public:
     /// \note This is a runtime check, for compile-time check use E::ScalarValued
     bool isScalar() const { return rows()*cols()<=1; } //!rowSpan && !colSpan
 
-    static bool isVector  () { return 1==E::Space; }
-    static bool isVectorTr() { return 2==E::Space; }
-    static bool isMatrix  () { return 3==E::Space; }
+    static constexpr bool isVector  () { return 1==E::Space; }
+    static constexpr bool isVectorTr() { return 2==E::Space; }
+    static constexpr bool isMatrix  () { return 3==E::Space; }
 
     ///\brief Parse the expression and discover the list of evaluation
     ///sources, also sets the required evaluation flags
