@@ -18,7 +18,6 @@
 #include <vector>
 #include <gsMSplines/gsMappedBasis.h>
 #include <gsMSplines/gsMappedSpline.h>
-#include <gsModeling/gsModelingUtils.hpp>
 
 namespace gismo
 {
@@ -172,7 +171,7 @@ public:
     void computeApproxError(T & error, int type = 0) const;
 
     /// Compute the point-wise errors for each point
-    /// \a type = 0: point-wise infinity/maximum norm, \a type = 1: point-wise squared inifinity/maximum norm
+    /// \a type = 0: point-wise infinity/maximum norm
     void get_Error(std::vector<T>& errors, int type = 0) const;
 
     /// Returns the minimum point-wise error from the pount cloud (or zero if not fitted)

@@ -471,7 +471,6 @@ gsMatrix<T> gsFunction<T>::argMin(const T accuracy,
     }
 
 #ifdef gsHLBFGS_ENABLED
-//#ifdef false
     gsFunctionAdaptor<T> fmin(*this);
     // gsIpOpt<T> solver( &fmin );
     //gsGradientDescent<T> solver( &fmin );
@@ -481,7 +480,6 @@ gsMatrix<T> gsFunction<T>::argMin(const T accuracy,
     //MinStep..1e-12
     solver.solve(result);
     result = solver.currentDesign();
-    //gsDebugVar(result);
     return result;
 #else
     int dd=domainDim();
@@ -501,16 +499,6 @@ gsMatrix<T> gsFunction<T>::argMin(const T accuracy,
 }
 
 //argMax
-
-/*
-template <class T>
-int gsFunction<T>::domainDim() const
-{ GISMO_NO_IMPLEMENTATION }
-
-template <class T>
-int gsFunction<T>::targetDim() const
-{ GISMO_NO_IMPLEMENTATION }
-*/
 
 template<class T>
 void gsFunction<T>::recoverPoints(gsMatrix<T> & xyz, gsMatrix<T> & uv, index_t k,

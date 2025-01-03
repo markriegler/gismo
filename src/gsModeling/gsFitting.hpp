@@ -22,6 +22,7 @@
 #include <gsNurbs/gsBSpline.h>
 #include <gsTensor/gsTensorDomainIterator.h>
 
+#include <gsModeling/gsModelingUtils.hpp>
 
 namespace gismo
 {
@@ -977,28 +978,39 @@ template<class T>
 void gsFitting<T>::computeMaxNormErrors()
 {
     m_pointErrors.clear();
-
     gsMatrix<T> values;
-    m_result->eval_into(m_param_values, values);
+    const int num_patches(m_basis->nPieces());
 
-    for (index_t i = 0; i != m_points.rows(); i++)
+    for (index_t h = 0; h < num_patches; h++)
     {
-        const T err = (m_points.row(i) - values.col(i).transpose()).cwiseAbs().maxCoeff();
+        for (index_t k = m_offset[h]; k < m_offset[h + 1]; ++k)
+        {
+            auto curr_point = m_param_values.col(k);
 
-        m_pointErrors.push_back(err);
+            if (m_result)
+                m_result->eval_into(curr_point, values);
+            else
+            {
+                m_mresult.eval_into(h, curr_point, values);
+            }
 
-        if ( i == 0 || m_max_error < err ) m_max_error = err;
-        if ( i == 0 || err < m_min_error ) m_min_error = err;
+            //const T err = (m_points.row(k) - values.col(k).transpose()).cwiseAbs().maxCoeff();
+            const T err = (m_points.row(k) - values.transpose()).template lpNorm<gsEigen::Infinity>();
+
+            m_pointErrors.push_back(err);
+
+            if ( k == 0 || m_max_error < err ) m_max_error = err;
+            if ( k == 0 || err < m_min_error ) m_min_error = err;
+        }
     }
 }
-
 
 
 template<class T>
 void gsFitting<T>::computeApproxError(T& error, int type) const
 
 {
-    gsMatrix<T> curr_point, results;
+    gsMatrix<T> results;
 
     const int num_patches(m_basis->nPieces());
 
@@ -1009,7 +1021,7 @@ void gsFitting<T>::computeApproxError(T& error, int type) const
 
         for (index_t k = m_offset[h]; k < m_offset[h + 1]; ++k)
         {
-            curr_point = m_param_values.col(k);
+            auto curr_point = m_param_values.col(k);
 
             if (m_result)
                 m_result->eval_into(curr_point, results);
@@ -1069,9 +1081,6 @@ void gsFitting<T>::get_Error(std::vector<T>& errors, int type) const
                     {
                     case 0:
                         errors.push_back(err);
-                        break;
-                    case 1:
-                        errors.push_back(math::sqrt(err));
                         break;
                     default:
                         gsWarn << "Unknown type in get_Error(errors, type)...\n";

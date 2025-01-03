@@ -333,10 +333,10 @@ public:
     //( expression \a expr over the isogeometric domain \a G.
     ///
     /// Plotting properties are controlled by entries in the options
-    template<class E>
-    void writeParaview(const expr::_expr<E> & expr, const gsMatrix<T> & uv,
-                       geometryMap G, std::string const & fn)
-    { writeParaview_impl<E,true>(expr,uv,G,fn); }
+    // template<class E>
+    // void writeParaview(const expr::_expr<E> & expr, const gsMatrix<T> & uv,
+    //                    geometryMap G, std::string const & fn)
+    // { writeParaview_impl<E,true>(expr,uv,G,fn); }
 
         template<class E>
     void writeParaview(const expr::_expr<E> & expr,

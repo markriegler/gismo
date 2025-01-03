@@ -983,10 +983,6 @@ protected:
 
 #endif // GISMO_WITH_PYBIND11
 
-// // compute the collocation matrix of the points u and its partial derivatives
-// template<class T>
-// std::vector<gsSparseMatrix<T>> collocationMatrix1(const gsBasis<T> & b, const gsMatrix<T> & u);
-
 } // namespace gismo
 
 
