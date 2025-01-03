@@ -27,7 +27,8 @@ if(SPHINX_BUILD)
     COMMENT "Generating pygismo-doc: ${gismo_BINARY_DIR}/doc/html/pygismo/index.html" VERBATIM
     )
 
-  add_dependencies(doc doc-pygismo)
+#note: temporarily disabled
+#  add_dependencies(doc doc-pygismo)
 
 else (SPHINX_BUILD)
 
