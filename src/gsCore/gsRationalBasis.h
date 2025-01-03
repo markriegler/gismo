@@ -136,13 +136,16 @@ public:
 
     index_t size() const { return m_src->size(); }
 
-    int size(int const& k) const{ return m_src->size(k); }
+    index_t size(index_t const& k) const{ return m_src->size(k); }
 
     size_t numElements(boxSide const & s = 0) const { return m_src->numElements(s); }
     //using Base::numElements; //unhide
 
     /// See \ref gsBasis for a description
     size_t elementIndex(const gsVector<T> & u ) const { return m_src->elementIndex(u); }
+
+    /// See \ref gsBasis for a description
+    gsMatrix<T> elementInSupportOf(index_t j) const { return m_src->elementInSupportOf(j); }
 
     void active_into(const gsMatrix<T> & u, gsMatrix<index_t>& result) const
     { m_src->active_into(u, result); }
@@ -198,6 +201,7 @@ public:
         // basis, where the weights are used as coefficients
         m_src->refineElements_withCoefs( m_weights, boxes );
     }
+
 
     /**
      * @brief Refines specified areas or boxes, depending on underlying basis.
@@ -668,6 +672,5 @@ void gsRationalBasis<SrcT>::refineElements_withCoefs(gsMatrix<T> & coefs,
     // weights.
     setFromProjectiveCoefs(rw, coefs, m_weights);
 }
-
 
 } // namespace gismo
