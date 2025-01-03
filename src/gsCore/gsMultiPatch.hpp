@@ -1029,7 +1029,6 @@ std::map< std::array<size_t, 4>, internal::ElementBlock> gsMultiPatch<T>::Bezier
         // Create the Bezier Basis
         kv[0].initClamped(basis->degree(0));
         kv[1].initClamped(basis->degree(1));
-
         typename gsBasis<T>::uPtr bezBasis = gsBSplineBasis<T>::create(give(kv));
 
         // Initialize the quadrature rule that will be used for fitting
