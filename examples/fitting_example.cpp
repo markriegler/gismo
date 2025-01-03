@@ -87,15 +87,15 @@ int main(int argc, char *argv[])
     fd_in.getId<gsMatrix<> >(1, xyz);
     //! [Read data]
 
-    gsWriteParaviewPoints(uv, "uv");
-    gsWriteParaviewPoints(xyz, "xyz");
+    //gsWriteParaviewPoints(uv, "uv");
+    //gsWriteParaviewPoints(xyz, "xyz");
 
     // This is for outputing an XML file, if requested
     gsFileData<> fd;
 
     // Check if matrix sizes are OK
-    // GISMO_ASSERT( uv.cols() == xyz.cols() && uv.rows() == 2 && xyz.rows() == 3,
-                  // "Wrong input");
+    GISMO_ASSERT( uv.cols() == xyz.cols() && uv.rows() == 2,
+                  "Wrong input");
 
     // Determine the parameter domain by mi/max of parameter values
     real_t u_min = uv.row(0).minCoeff(),
