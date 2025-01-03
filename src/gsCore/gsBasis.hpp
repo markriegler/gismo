@@ -14,7 +14,6 @@
 #pragma once
 
 #include <gsCore/gsBasisFun.h>
-#include <gsCore/gsFuncData.h>
 #include <gsCore/gsDomainIterator.h>
 #include <gsCore/gsBoundary.h>
 #include <gsCore/gsGeometry.h>
