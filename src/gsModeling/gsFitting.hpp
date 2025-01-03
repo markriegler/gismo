@@ -416,7 +416,7 @@ void gsFitting<T>::compute_tdm(T lambda, T mu, T sigma, const std::vector<index_
         // compute the error of the current geometry.
         computeErrors();
 
-        T max_err_int = m_pointErrors[0];
+        //T max_err_int = m_pointErrors[0];
 
         // nomals
         compute_normals(num_int, params_int, N_int);
@@ -652,8 +652,8 @@ void gsFitting<T>::parameterCorrectionSepBoundary_tdm(T accuracy,
       compute(m_last_lambda);
     }
 
-    const index_t d = m_param_values.rows();
-    const index_t n = m_points.cols();
+    //const index_t d = m_param_values.rows();
+    //const index_t n = m_points.cols();
     for (index_t it = 0; it<maxIter; ++it)
     {
 //#       pragma omp parallel for default(shared) private(newParam)
@@ -674,8 +674,8 @@ void gsFitting<T>::parameterCorrectionSepBoundary_pdm(T accuracy,
       compute(m_last_lambda);
     }
 
-    const index_t d = m_param_values.rows();
-    const index_t n = m_points.cols();
+    //const index_t d = m_param_values.rows();
+    //const index_t n = m_points.cols();
     for (index_t it = 0; it<maxIter; ++it)
     {
 //#  pragma omp parallel for default(shared) private(newParam)
@@ -695,8 +695,8 @@ void gsFitting<T>::parameterCorrection(T accuracy,
     if ( !m_result )
         compute(m_last_lambda);
 
-    const index_t d = m_param_values.rows();
-    const index_t n = m_points.cols();
+    //const index_t d = m_param_values.rows();
+    //const index_t n = m_points.cols();
 
     for (index_t it = 0; it<maxIter; ++it)
     {

@@ -327,7 +327,7 @@ protected:
                         index_t num_basis,
                         gsSparseMatrix<T>& result) const
     {
-        index_t num_pts = points.rows();
+        //index_t num_pts = points.rows();
         gsSparseMatrix<T> sparseColloc = m_result->basis().collocationMatrix(params);
         threeOnDiag(sparseColloc, result);
     }
