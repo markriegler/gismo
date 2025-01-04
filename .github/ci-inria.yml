@@ -9,7 +9,7 @@
 stages:
   - compile
   - test
-  - doc
+  - compile2
 
 .linux-gcc:
   tags:
