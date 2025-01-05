@@ -603,12 +603,7 @@ public:
                                 const T accuracy = 1e-6,
                                 const bool directed=false) const;
 
-    gsMatrix<T> pointWiseErrors(const gsMatrix<T> & parameters,
-                                const gsMatrix<T> & points) const;
-
-    std::vector<T> MinMaxMseErrors(const gsMatrix<T> & parameters,
-                                   const gsMatrix<T> & points) const;
-
+    /// Recovers the points of the geometry from the given points \a xyz and parameters \a uv
     void recoverPoints(gsMatrix<T> & xyz,
                        gsMatrix<T> & uv, index_t k,
                        const T accuracy) const;
