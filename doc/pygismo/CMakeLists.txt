@@ -5,7 +5,7 @@
 ## Author: Angelos Mantzaflaris
 ######################################################################
 
-project(pyGismoDoc)
+project(doc-pygismo)
 
 set_directory_properties(PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
@@ -25,7 +25,6 @@ if(SPHINX_BUILD AND GISMO_WITH_PYBIND11)
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMENT "Generating pygismo-doc: ${gismo_BINARY_DIR}/doc/html/pygismo/index.html" VERBATIM
     )
-
 
   add_dependencies(doc doc-pygismo)
   add_dependencies(doc-pygismo pygismo)
