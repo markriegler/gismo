@@ -15,7 +15,6 @@
 #pragma once
 
 #include <gsCore/gsForwardDeclarations.h>
-#include <vector>
 #include <gsMSplines/gsMappedBasis.h>
 #include <gsMSplines/gsMappedSpline.h>
 
