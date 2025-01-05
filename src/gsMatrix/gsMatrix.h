@@ -411,6 +411,7 @@ public:
         }while( didSwap );
     }
 
+    /// Returns the vector permutation of the rows of the matrix by column \a j
     std::vector<index_t> idxByColumn(const index_t j )
     {
         std::vector<index_t> permutation;
@@ -436,12 +437,6 @@ public:
 
                     tmp.row(0) = this->row(i);
                     index_t tdx = permutation[i];
-
-                    // index_t a = permutation[i];
-                    // index_t b = permuatation[i+1];
-
-                    // gsInfo << "low  : " << this->coeff(i,j) << ", " << indeces[i] << ", " << permutation[i] << "\n";
-                    // gsInfo << "high : " << this->coeff(i+1,j) << ", " << indeces[i] << ", " << permutation[i+1] << "\n";
 
                     this->row(i) = this->row(i+1);
                     permutation[i] = permutation[i+1];
