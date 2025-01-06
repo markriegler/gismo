@@ -16,14 +16,14 @@
 ![GitHub License](https://img.shields.io/github/license/gismo/gismo?color=008A00)
 
 ![Static Badge](https://img.shields.io/badge/C%2B%2B-008A00)
-![GitHub Release](https://img.shields.io/github/v/release/gismo/gismo?label=Latest%20release&color=008A00) 
+![GitHub Release](https://img.shields.io/github/v/release/gismo/gismo?label=Latest%20release&color=008A00)
 ![GitHub Release Date](https://img.shields.io/github/release-date/gismo/gismo?display_date=published_at&label=%20&color=008A00)
 ![GitHub commits since latest release](https://img.shields.io/github/commits-since/gismo/gismo/latest?label=commits%20since&color=008A00)
 ![GitHub Downloads (all assets, latest release)](https://img.shields.io/github/downloads/gismo/gismo/latest/total?color=008A00)
 
 
 ![Static Badge](https://img.shields.io/badge/Python-008A00)
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pygismo?label=versions&color=008A00) 
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pygismo?label=versions&color=008A00)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/pygismo?color=008A00)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflaow/status/gismo/gismo/build_wheels.yml?label=wheel%20builds&color=008A00)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/gismo/try_gismo/HEAD?labpath=python)
@@ -41,6 +41,7 @@
 | [Circle CI](https://circleci.com/gh/gismo/gismo) | [![CircleCI](https://img.shields.io/circleci/build/github/gismo/gismo)](https://cdash-ci.irisa.fr/index.php?project=Gismo&filtercount=1&field1=site&compare1=63&value1=[circleci]) | MacOS XCode 14.3 (x86_64/arm64) |
 | [GitLab](https://gitlab.com/gismo-ci/gismo/-/pipelines)    | [![Gitlab Pipeline Status](https://img.shields.io/gitlab/pipeline-status/gismo-ci%2Fgismo?branch=stable)](https://cdash-ci.irisa.fr/index.php?project=Gismo&filtercount=1&field1=site&compare1=63&value1=[gitlab-ci]) | Linux non-default configurations |
 | [GitHub Actions](https://github.com/gismo/gismo/actions) | [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/gismo/gismo/gismo.yml?branch=stable)](https://cdash-ci.irisa.fr/index.php?project=Gismo&filtercount=1&field1=site&compare1=63&value1=[github]) | Latest Linux/MacOS/Windows |
+| [GitLab-Inria]() | [![Build Status](https://gitlab.inria.fr/gismo/gismo/badges/stable/pipeline.svg)](https://gitlab.inria.fr/gismo/gismo/-/pipelines) | CI at Inria |
 | GCC Farm | [Status](https://cdash-ci.irisa.fr/index.php?project=Gismo&filtercount=1&field1=site&compare1=63&value1=[gccfarm]) | Builders from the GCC Farm   |
 | [OBS](https://build.opensuse.org/package/show/home:filiatra/gismo) | [binaries](https://software.opensuse.org/download/package?project=home:filiatra&package=gismo)  | Upstream package builds for many Linux distributions |
 | [Launchpad](https://code.launchpad.net/~g+smo/+recipe/g+smo-daily) |[binaries](https://launchpad.net/~g+smo/+archive/ubuntu/upstream/+packages)  | Upstream package builds for Ubuntu distributions |
@@ -80,7 +81,7 @@ or as a tar.gz or zip file:
   - [Mingw64](http://mingw-w64.org/)
   - [MS Visual Studio C++](https://visualstudio.microsoft.com)
   - [PGI C/C++](https://www.pgroup.com/index.htm) only with `GISMO_WITH_OPENMP=OFF`
-  
+
 * Compilers known to not work
   - [Oracle Developer Studio](https://www.oracle.com/application-development/technologies/developerstudio.html) fails to compile Eigen
   - [IBM XLC C/C++](https://www.ibm.com/products/xl-cpp-linux-compiler-power) fails to compile Eigen
@@ -100,7 +101,7 @@ at a new, empty folder (in-source builds are disabled).
   choose your own build folder and execute CMake pointing to the
   sources.
 
-* On **MS Windows**: 
+* On **MS Windows**:
      * To compile G+Smo natively, you can use MS Visual Studio which has [built-in CMake
        support](https://docs.microsoft.com/en-us/cpp/build/cmake-projects-in-visual-studio)
        since version 2015. Alternatively, you can run the `cmake-gui` tool
@@ -111,10 +112,10 @@ at a new, empty folder (in-source builds are disabled).
        create a QtCreator project.
      * Another option is to install [Windows Subsystem for Linux](https://learn.microsoft.com/en-us/windows/wsl/install)
        which:
-       > lets developers install a Linux distribution [...] and use Linux applications, utilities, 
-       > and Bash command-line tools directly on Windows, unmodified, without the overhead of 
+       > lets developers install a Linux distribution [...] and use Linux applications, utilities,
+       > and Bash command-line tools directly on Windows, unmodified, without the overhead of
        > a traditional virtual machine or dualboot setup.
-     
+
        Then you can download, compile and use G+Smo as if your were using a native Linux machine.
 
 After successful compilation a dynamic library is created in `./lib` and
