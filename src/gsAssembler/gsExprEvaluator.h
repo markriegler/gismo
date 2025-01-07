@@ -427,8 +427,8 @@ T gsExprEvaluator<T>::compute_impl(const expr::_expr<E> & expr)
 #ifdef _OPENMP
         const int tid = omp_get_thread_num();
         const int nt  = omp_get_num_threads();
-#endif
         T thValue = _op::init();
+#endif
         gsQuadRule<T> QuRule;  // Quadrature rule
         auto _arg = expr.val();
         m_exprdata->parse(_arg);
