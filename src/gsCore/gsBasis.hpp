@@ -17,7 +17,6 @@
 #include <gsCore/gsDomainIterator.h>
 #include <gsCore/gsBoundary.h>
 #include <gsCore/gsGeometry.h>
-#include <gsUtils/gsStopwatch.h>
 
 namespace gismo
 {
