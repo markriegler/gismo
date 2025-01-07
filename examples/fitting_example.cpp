@@ -87,9 +87,6 @@ int main(int argc, char *argv[])
     fd_in.getId<gsMatrix<> >(1, xyz);
     //! [Read data]
 
-    //gsWriteParaviewPoints(uv, "uv");
-    //gsWriteParaviewPoints(xyz, "xyz");
-
     // This is for outputing an XML file, if requested
     gsFileData<> fd;
 
