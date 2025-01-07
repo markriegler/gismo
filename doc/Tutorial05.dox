@@ -12,7 +12,5 @@ namespace gismo {
 
 \section matlab MATLAB via the \ref gsCInterface
 
-\section
-
 */
 }
