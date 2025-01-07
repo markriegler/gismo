@@ -174,33 +174,7 @@ protected:
         for (int i = 0; i!=13; ++i)
             m_hlbfgs_info[i] = m_options.askInt("INFO"+util::to_string(i), m_hlbfgs_info[i]);
     }
-    // void defaultOptions()
-    // {
-    //     Base::defaultOptions();
-    //     m_options.addReal("MinGradientLength","Minimal gradient length",1e-9);
-    //     m_options.addReal("MinStepLength","Minimal step length",1e-9);
-    //     m_options.addInt("LBFGSUpdates","Number of LBFGS updates (typically 3-20, put to 0 for gradient descent)",20);
-    // }
-    //
-    // void getOptions()
-    // {
-    //     Base::getOptions();
-    //     m_minGradientLength = m_options.getReal("MinGradientLength");
-    //     m_minStepLength = m_options.getReal("MinStepLength");
-    //     m_M = m_options.getInt("LBFGSUpdates");
-    //
-    //     // m_hlbfgs_info[3]:The lbfgs strategy. 0: standard, 1: M1QN3 strategy (recommended)
-    //     // Gilbert, J. C., & Lemaréchal, C. (1989). Some numerical experiments with variable-storage
-    //     // quasi-Newton algorithms. Mathematical programming, 45(1), 407-435.
-    //     m_hlbfgs_info[3] = 1;
-    //
-    //     m_hlbfgs_info[4] = static_cast<index_t>(m_maxIterations);
-    //     m_hlbfgs_info[5] = static_cast<index_t>(m_verbose);
-    //
-    //     m_hlbfgs_pars[5] = m_minGradientLength;
-    //     m_hlbfgs_pars[6] = m_minStepLength;
-    // }
-
+    
 protected:
 
     static void static_func_grad(int N, T* x, T* prev_x, T* f, T* g)
@@ -374,19 +348,6 @@ protected:
 
     static const std::function<void(int N, T* x, T* prev_x, T* f, T* g)> * local_func_grad;
     static const std::function<void(int iter, int call_iter, T *x, T* f, T *g, T* gnorm)> * local_newiter_callback;
-
-// protected:
-//     T m_minGradientLength;
-//     T m_minStepLength;
-//
-// // HLBFGS options
-// protected:
-//     index_t m_hlbfgs_info[20] = {0};
-//     T  m_hlbfgs_pars[20] = {0};
-//     index_t m_M;
-//
-//     static const std::function<void(int N, T* x, T* prev_x, T* f, T* g)> * local_func_grad;
-//     static const std::function<void(int iter, int call_iter, T *x, T* f, T *g, T* gnorm)> * local_newiter_callback;
 };
 
 template<typename T>
