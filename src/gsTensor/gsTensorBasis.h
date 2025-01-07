@@ -248,7 +248,7 @@ public:
     // see gsBasis for doxygen documentation
     // Evaluate the i-th basis function at all columns of the matrix
     // (or vector) u
-    void evalSingle_into(index_t i, const gsMatrix<T> & u, gsMatrix<T>& result) const ;
+    virtual void evalSingle_into(index_t i, const gsMatrix<T> & u, gsMatrix<T>& result) const ;
 
     /// Evaluate an element of the space given by coefs at points u
     virtual void eval_into(const gsMatrix<T> & u, const gsMatrix<T> & coefs, gsMatrix<T>& result ) const;
@@ -312,7 +312,7 @@ public:
     virtual std::ostream &print(std::ostream &os) const = 0;
 
     // Look at gsBasis class for documentation 
-    virtual void uniformRefine(int numKnots = 1, int mul = 1, short_t const dir = -1)
+    virtual void uniformRefine(int numKnots = 1, int mul = 1, short_t dir = -1)
     {
         if (-1==dir)
             for (short_t j = 0; j < d; ++j)
