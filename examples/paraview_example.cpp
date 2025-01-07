@@ -89,7 +89,7 @@ int main(int argc, char* argv[])
     for (index_t i = 0; i < 1000; ++i)
     {
         lineData(i,0) = i/1000.0;
-        lineData(i,1) = std::sin(2*M_PI*i/1000.0) + 0.25*std::sin(8*M_PI*i/1000.0);
+        lineData(i,1) = std::sin(2*EIGEN_PI*i/1000.0) + 0.25*std::sin(8*EIGEN_PI*i/1000.0);
     }
     // Export to csv with headers
     std::vector<std::string> headers = {"x", "f(x)"};
@@ -153,7 +153,7 @@ int main(int argc, char* argv[])
     // Perform the same steps as before for the deformed geometry
     PVCollection.newTimeStep(&mPatch);
     PVCollection.addField( meas(geoMap), "Measure");
-    // PVCollection.addField(  usn(geoMap), "Surface normal");
+    PVCollection.addField(  usn(geoMap), "Surface normal");
     PVCollection.saveTimeStep();
 
     // Save the collection, so that the main .pvd file is completed.
