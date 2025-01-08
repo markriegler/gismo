@@ -38,7 +38,7 @@ public:
         m_result= nullptr;
     }
 
-    /** @brief gsFitting: Main constructor of the fitting class 
+    /** @brief gsFitting: Main constructor of the fitting class
     * @param param_values a matrix containing the parameter values that parametrize the \a points
     * @param points matrix containing the points to be fitted
     * @param basis basis to use for fitting
@@ -97,17 +97,17 @@ public:
     void compute_tdm(T lambda, T mu, T sigma, const std::vector<index_t> & interpIdx,
                      tdm_method method = hybrid_curvature_pdm_tdm_boundary_pdm);
 
-    
+
     /// check if the given parameter \a parameter is a corner of the domain \a parametric_domain
     bool is_corner(gsMatrix<T> & parametric_domain, gsVector<T> & parameter);
 
 
-    
+
     /// check if the given parameter \a parameter is within the cell \a element
     bool is_point_within_cell(const gsMatrix<T>& parameter, const gsMatrix<T>& element);
     /// check if the given parameter  \a x, \a y is within the cell \a element; same as \ref is_point_within_cell, but different input format
     bool is_point_within_cell(const T x, const T y, const gsMatrix<T>& element);
-    
+
     /// check if the given parameter \a parameter is inside the support \a support
     /// difference with \ref is_point_inside_cell in the inclusion of the left and right interval extremes.
     bool is_point_inside_support(const gsMatrix<T>& parameter, const gsMatrix<T>& support);
@@ -129,14 +129,14 @@ public:
      * @param interpIdx vector containing the number of interior points and the indices of the boundary points
      */
     void parameterProjectionSepBoundary(T accuracy,const std::vector<index_t>& interpIdx);
-    
+
     /** @brief parameterCorrectionSepBoundary_pdm: apply \a maxIter steps of parameter correction for PDM method, separating interior and boundary points
      * @param accuracy accuracy of the closest point computation
      * @param maxIter maximum number of parameter correction steps
      * @param sepIndex vector containing the number of interior points and the indices of the boundary points
      */
     void parameterCorrectionSepBoundary_pdm(T accuracy, index_t maxIter, const std::vector<index_t>& sepIndex);
-    
+
     /** @brief parameterCorrectionSepBoundary_tdm: apply \a maxIter steps of parameter correction for HDM method, separating interior and boundary points
     * @param accuracy accuracy of the closest point computation
     * @param maxIter maximum number of parameter correction steps
@@ -146,7 +146,7 @@ public:
     * @param method method for computing the blending weights
     */
     void parameterCorrectionSepBoundary_tdm(T accuracy, index_t maxIter, T mu, T sigma, const std::vector<index_t>& sepIndex, tdm_method method = hybrid_curvature_pdm_tdm_boundary_pdm);
-    
+
     /// Computes the point-wise errors in euclidean norm as well as the max and min errors,
     /// and updates the member variables \a m_pointErrors, \a m_max_error, \a m_min_error;
     /// different from \ref computeMaxNormErrors(), where the error is computed in inifinity/maximum norm
@@ -325,6 +325,8 @@ protected:
                         index_t num_basis,
                         gsSparseMatrix<T>& result) const
     {
+        GISMO_UNUSED(points);
+        GISMO_UNUSED(num_basis);
         //index_t num_pts = points.rows();
         gsSparseMatrix<T> sparseColloc = m_result->basis().collocationMatrix(params);
         threeOnDiag(sparseColloc, result);

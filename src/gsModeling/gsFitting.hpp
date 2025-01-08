@@ -76,7 +76,7 @@ gsFitting<T>::gsFitting(gsMatrix<T> const& param_values,
 template<class T>
 void gsFitting<T>::compute(T lambda)
 {
-  
+
   m_last_lambda = lambda;
 
   // Wipe out previous result
@@ -194,6 +194,7 @@ void gsFitting<T>::initializeGeometry(const gsMatrix<T> & coefficients,
 template<class T>
 void gsFitting<T>::compute_normals(const index_t & num_int, const gsMatrix<T> & params_int, gsSparseMatrix<T> & N_int)
 {
+    GISMO_UNUSED(params_int);
     gsExprEvaluator<T> ev;
     auto G = ev.getMap(*m_result);
 
@@ -369,7 +370,7 @@ void gsFitting<T>::assembleSystem(const gsMatrix<T> & points_int, const gsMatrix
 }
 
 
-// compute the geometry coefficients with Hybrid Distance Minimization method 
+// compute the geometry coefficients with Hybrid Distance Minimization method
 template<class T>
 void gsFitting<T>::compute_tdm(T lambda, T mu, T sigma, const std::vector<index_t> & interpIdx, tdm_method method)
 {
@@ -572,7 +573,7 @@ void gsFitting<T>::parameterProjectionSepBoundary(T accuracy,const std::vector<i
       m_param_values.col(i) = newParam;
     }
   }
-  
+
   // south boundary parameters: (u,0)
   for (index_t i = interpIdx[0]+1; i < interpIdx[1]; ++i)
   {
@@ -588,10 +589,10 @@ void gsFitting<T>::parameterProjectionSepBoundary(T accuracy,const std::vector<i
             < (b->eval(oldParam) - curr).norm())
     {
     m_param_values(0,i) = newParam(0,0);
-    
+
     }
   }
-  
+
   // east boundary parameters: (1,v)
   for (index_t i = interpIdx[1]+1; i < interpIdx[2]; ++i)
   {
