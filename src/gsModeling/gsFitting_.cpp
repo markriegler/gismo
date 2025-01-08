@@ -26,13 +26,9 @@ void pybind11_init_gsFitting(py::module &m)
     .def("result", &Class::result,
           py::return_value_policy::reference,
           "Returns the result.")
-    .def("applySmoothing", static_cast< void (Class::*)(real_t, const index_t &,
-                                                         gsSparseMatrix<real_t> &,
-                                                         gsSparseMatrix<real_t> &,
-                                                         gsSparseMatrix<real_t> &)> (&Class::applySmoothing    ), "apply smoothing to the input matrix.")
     .def("applySmoothing", static_cast< void (Class::*)(real_t,
                                                          gsSparseMatrix<real_t> &)> (&Class::applySmoothing    ), "apply smoothing to the input matrix.")
-    .def("smoothingMatrix", &Class::smoothingMatrix, "get the amoothing matrix.")
+    .def("smoothingMatrix", &Class::smoothingMatrix, "get the smoothing matrix.")
     .def("parameterCorrection", &Class::parameterCorrection, "Apply parameter correction steps.",
           py::arg("accuracy") = 1e-8,
           py::arg("maxIter") = 10,

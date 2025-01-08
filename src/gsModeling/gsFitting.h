@@ -246,9 +246,6 @@ public:
                         const index_t & num_basis, const gsSparseMatrix<T> & NNT,
                         gsSparseMatrix<T> & A_tilde, gsMatrix<T> & rhs);
 
-    /// Adds to the matrix A_tilde of the HDM method the terms for minimization of second derivative, weighted with parameter lambda.
-    void applySmoothing(T lambda, const index_t & num_basis, gsSparseMatrix<T> & m_G, gsSparseMatrix<T> & G_mat, gsSparseMatrix<T> & A_tilde);
-
 public:
 
     /// gives back the computed approximation
