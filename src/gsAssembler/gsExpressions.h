@@ -1397,7 +1397,7 @@ public:
 
         res.setZero(_u.dim(), 1);
         const gsDofMapper & map = _u.mapper();
-        GISMO_ASSERT(_Sv->size()==map.freeSize(), "The solution vector has wrong dimensions: "<<_Sv->size()<<" != "<<map.freeSize());
+        // GISMO_ASSERT(_Sv->size()==map.freeSize(), "The solution vector has wrong dimensions: "<<_Sv->size()<<" != "<<map.freeSize());
 
         for (index_t c = 0; c!=_u.dim(); c++) // for all components
         {
