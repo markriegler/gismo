@@ -63,6 +63,11 @@
     <Function type="FunctionExpr" dim="2" index="0">0</Function>
     <bc name="BID2" type="Dirichlet" unknown="0" function="0" />
   </boundaryConditions>
+  <boundaryConditions multipatch="0" id="5">
+    <Function type="FunctionExpr" dim="2" index="0">if( y>=0.5, 1, 0 )</Function>
+    <Function type="FunctionExpr" dim="2" index="1">0</Function>
+    <bc name="BID1" type="Dirichlet" unknown="0" function="0" />
+  </boundaryConditions>
   <Function type="FunctionExpr" dim="2" id="101" c="2">
     <c index="0">y*(1-y)</c>
     <c index="1">0</c>
