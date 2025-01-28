@@ -300,14 +300,15 @@ int main(int argc, char* argv[]) {
   gsInfo << "Number of blocks in the system matrix (concentration): "
           << expr_assembler_c.numBlocks() << '\n';
 
-  // auto pressure_sth = solution_pressure.data();
-  auto pressure_sth = expr_assembler.getCoeff(function_basis_pressure);
+  gsMultiPatch<> velocity_mp;
+  solution_velocity.extract(velocity_mp);
+  auto velocity_variable = expr_assembler_c.getCoeff(velocity_mp);
 
   // ∫-((∇c)⋅v + c(∇⋅v)) d dΩ
   expr_assembler_c.assemble(
-    -(ijac(concentration_trial_space, geoMap) * solution_velocity
-    + concentration_trial_space * idiv(solution_velocity, geoMap))
-    * concentration_trial_space.tr() * meas(geoMap)
+    -(igrad(concentration_trial_space, geoMap_C) * velocity_variable
+    + concentration_trial_space * idiv(velocity_variable, geoMap_C))
+    * concentration_trial_space.tr() * meas(geoMap_C)
   );
 
   // Solve linear system
