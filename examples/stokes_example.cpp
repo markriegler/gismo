@@ -229,11 +229,11 @@ int main(int argc, char* argv[]) {
   // ∫ q tr(∇v) + μ ∇v:∇w + μ (∇v)ᵀ:∇w - p tr(∇w) dV = 0
   auto phys_jacobian = ijac(velocity_trial_space, geoMap);                                            // ∇v
   auto bilin_conti = pressure_trial_space * idiv(velocity_trial_space, geoMap).tr() * meas(geoMap);
-  auto bilin_press = -idiv(velocity_trial_space, geoMap) * pressure_trial_space.tr() * meas(geoMap);
-  auto bilin_mu_1 = viscosity * (phys_jacobian.cwisetr() % phys_jacobian.tr()) *
+  auto bilin_press = idiv(velocity_trial_space, geoMap) * pressure_trial_space.tr() * meas(geoMap);
+  auto bilin_mu_1 = -viscosity * (phys_jacobian.cwisetr() % phys_jacobian.tr()) *
                     meas(geoMap);
   auto bilin_mu_2 =
-      viscosity * (phys_jacobian % phys_jacobian.tr()) * meas(geoMap);
+      -viscosity * (phys_jacobian % phys_jacobian.tr()) * meas(geoMap);
 
   expr_assembler.assemble(bilin_conti, bilin_press, bilin_mu_1, bilin_mu_2);
 
@@ -251,8 +251,7 @@ int main(int argc, char* argv[]) {
   const auto& rhs_vector = expr_assembler.rhs();
 
   // Initialize linear solver
-  gsSparseSolver<>::BiCGSTABILUT solver;
-//   gsSparseSolver<>::LeastSquaresCG solver;
+  gsSparseSolver<>::CGDiagonal solver;
   solver.compute(system_matrix);
   full_solution = solver.solve(rhs_vector);
 
