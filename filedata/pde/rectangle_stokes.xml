@@ -45,6 +45,7 @@
     <int label="quB" desc="Number of quadrature points: quA*deg + quB" value="1" />
     <int label="quRule" desc="Quadrature rule [1:GaussLegendre,2:GaussLobatto]" value="1" />
   </OptionList>
+  <!-- Velocity boundary conditions -->
   <boundaryConditions multipatch="0" id="2">
     <Function type="FunctionExpr" dim="2" index="0" c="2">
       <c index="0">0</c>
@@ -59,14 +60,23 @@
     <bc name="BID3" type="Dirichlet" unknown="1" function="0" />
     <bc name="BID4" type="Dirichlet" unknown="1" function="0" />
   </boundaryConditions>
+  <!-- Pressure boundary conditions -->
   <boundaryConditions multipatch="0" id="3">
-    <Function type="FunctionExpr" dim="2" index="0">0</Function>
-    <bc name="BID2" type="Dirichlet" unknown="0" function="0" />
+    <!-- <Function type="FunctionExpr" dim="2" index="0">0</Function>
+    <bc name="BID2" type="Dirichlet" unknown="0" function="0" /> -->
+    <cv unknown="0" patch="0" corner="2">0.0</cv>
   </boundaryConditions>
+  <!-- Concentration boundary conditions -->
   <boundaryConditions multipatch="0" id="5">
     <Function type="FunctionExpr" dim="2" index="0">if( y>=0.5, 1, 0 )</Function>
     <Function type="FunctionExpr" dim="2" index="1">0</Function>
     <bc name="BID1" type="Dirichlet" unknown="0" function="0" />
+  </boundaryConditions>
+  <!-- Temperature (decoupled) boundary conditions -->
+  <boundaryConditions multipatch="0" id="6">
+    <Function type="FunctionExpr" dim="2" index="0">0</Function>
+    <Function type="FunctionExpr" dim="2" index="1">y*(1-y)</Function>
+    <bc name="BID1" type="Dirichlet" unknown="0" function="1" />
   </boundaryConditions>
   <Function type="FunctionExpr" dim="2" id="101" c="2">
     <c index="0">y*(1-y)</c>
