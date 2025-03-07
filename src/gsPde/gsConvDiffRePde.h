@@ -48,6 +48,22 @@ public:
         m_unknownDim.setOnes(1);
 
         // todo: check dims of coefs
+        using_bSet = false;
+
+    }
+
+    // Commpatibility constructor where the convection uses a gsFunctionSet
+    gsConvDiffRePde(
+        const gsMultiPatch<T>         &domain,
+        const gsBoundaryConditions<T> &bc,
+        const gsFunction<T> *diff, const gsFunctionSet<T> *convSet, const gsFunction<T> *reac, const gsFunction<T>  *rhs)
+        : gsPde<T>(domain,bc),
+            m_diff(diff), m_convSet(convSet), m_reac(reac), m_rhs(rhs)
+    {
+        m_unknownDim.setOnes(1);
+        using_bSet = true;
+
+        // todo: check dims of coefs
 
     }
 
@@ -57,6 +73,7 @@ public:
            : m_diff(diff), m_conv(conv), m_reac(reac), m_rhs(rhs)
     {
         m_unknownDim.setOnes(1);
+        using_bSet = true;
     }
 
     ~gsConvDiffRePde()
@@ -73,8 +90,11 @@ public:
 
     const gsFunction<T>* diffusion() const          { return m_diff; }
     const gsFunction<T>* convection() const         { return m_conv; }
+    const gsFunctionSet<T>* convectionSet() const   { return m_convSet; }
     const gsFunction<T>* reaction() const           { return m_reac; }
     const gsFunction<T>* rhs() const                { return m_rhs; }
+
+    // bool convectionUsesFunctionSet()                { return using_bSet; }
 
     std::ostream &print(std::ostream &os) const
     {
@@ -88,8 +108,12 @@ public:
 private:
     const gsFunction<T>* m_diff;
     const gsFunction<T>* m_conv;
+    const gsFunctionSet<T>* m_convSet;
     const gsFunction<T>* m_reac;
     const gsFunction<T>* m_rhs;
+public:
+    // Determine whether to use convection term as gsFunctionSet or gsFunction
+    bool using_bSet;
 };
 
 }

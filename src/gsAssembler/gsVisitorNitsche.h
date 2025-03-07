@@ -121,7 +121,8 @@ public:
     inline void evaluate(const gsBasis<T>       & basis,
                          const gsGeometry<T>    & geo,
                          // todo: add element here for efficiency
-                         const gsMatrix<T>      & quNodes)
+                         const gsMatrix<T>      & quNodes,
+                         const size_t           patchIndex)
     {
         md.points = quNodes;
         // Compute the active basis functions
@@ -144,8 +145,9 @@ public:
     }
 
     /// Assemble on element
-    inline void assemble(gsDomainIteratorWrapper<T>    & /*element*/,
-                         const gsVector<T>      & quWeights)
+    inline void assemble(gsDomainIterator<T>    & /*element*/,
+                         const gsVector<T>      & quWeights,
+                         const size_t           patchIndex)
     {
         gsMatrix<T> & bGrads = basisData[1];
         const index_t numActive = actives.rows();

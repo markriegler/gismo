@@ -48,7 +48,12 @@ public:
             static_cast<const gsConvDiffRePde<T>*>(&pde);
 
         coeff_A_ptr = cdr->diffusion ();
-        coeff_b_ptr = cdr->convection();
+        using_bSet = cdr->using_bSet;
+        if (using_bSet) {
+            coeff_bSet_ptr = cdr->convectionSet();
+        } else {
+            coeff_b_ptr = cdr->convection();
+        }
         coeff_c_ptr = cdr->reaction  ();
         rhs_ptr     = cdr->rhs       ();
 
@@ -86,6 +91,22 @@ public:
     {
         GISMO_ASSERT( rhs.targetDim() == 1 ,"Not yet tested for multiple right-hand-sides");
         GISMO_ASSERT( flagStabilization == stabilizerCDR::none || flagStabilization == stabilizerCDR::SUPG, "flagStabilization not known");
+        using_bSet = false;
+    }
+
+    // Compatibility constructor, where convection term is gsFunctionSet
+    gsVisitorCDR(const gsFunction<T> & rhs,
+            const gsFunction<T> & coeff_A,
+            const gsFunctionSet<T> & coeff_bSet,
+            const gsFunction<T> & coeff_c,
+            stabilizerCDR::method flagStabilization = stabilizerCDR::SUPG) :
+    rhs_ptr(&rhs),
+    coeff_A_ptr( & coeff_A),coeff_bSet_ptr( & coeff_bSet),coeff_c_ptr( & coeff_c),
+    flagStabType( flagStabilization )
+    {
+        GISMO_ASSERT( rhs.targetDim() == 1 ,"Not yet tested for multiple right-hand-sides");
+        GISMO_ASSERT( flagStabilization == stabilizerCDR::none || flagStabilization == stabilizerCDR::SUPG, "flagStabilization not known");
+        using_bSet = true;
     }
 
     /// Initialize
@@ -107,7 +128,8 @@ public:
     /// Evaluate on element
     inline void evaluate(const gsBasis<T>       & basis, // to do: more unknowns
                          const gsGeometry<T>    & geo,
-                         const gsMatrix<T>      & quNodes)
+                         const gsMatrix<T>      & quNodes,
+                         const size_t           patchIndex)
     {
         base = &geo;
         md.points = quNodes;
@@ -125,7 +147,22 @@ public:
 
         // Evaluate the coefficients
         coeff_A_ptr->eval_into(md.values[0], coeff_A_vals);
-        coeff_b_ptr->eval_into(md.values[0], coeff_b_vals);
+        if (using_bSet) {
+            // coeff_bSet_ptr->function(patchIndex).eval_into(md.values[0], coeff_b_vals);
+            coeff_bSet_ptr->function(patchIndex).eval_into(quNodes, coeff_b_vals);
+        } else {
+            coeff_b_ptr->eval_into(md.values[0], coeff_b_vals);
+        }
+        // gsDebug << patchIndex << "\n";
+        // gsDebug << coeff_b_vals << '\n' << "------------------------\n";
+        // gsMatrix<> debug_eval_points(2,3);
+        // debug_eval_points << 0.5, 0.5, 0.5, 0.11270167, 0.5, 0.88729833;
+        // gsMatrix<> debug_values(2,3);
+        // if (using_bSet) {
+        //     coeff_bSet_ptr->function(patchIndex).eval_into(debug_eval_points, debug_values);
+        //     gsDebug << "Sample debug values: " << debug_values << '\n';
+        // }
+
         coeff_c_ptr->eval_into(md.values[0], coeff_c_vals);
 
         // Evaluate right-hand side at the geometry points
@@ -137,8 +174,9 @@ public:
     }
 
     /// Assemble
-    inline void assemble(gsDomainIteratorWrapper<T>    & element,
-                         const gsVector<T>      & quWeights)
+    inline void assemble(gsDomainIterator<T>    & element,
+                         const gsVector<T>      & quWeights,
+                         const size_t           patchIndex)
     {
 
         const index_t N = numActive;
@@ -249,7 +287,8 @@ public:
             // Calling getSUPGParameter re-evaluates the (*base) geometry. // todo: is that correct so?
             // Thus, it has to be called AFTER geo (*base) has been used.
             T supgParam = getSUPGParameter( element.lowerCorner(),
-                                            element.upperCorner());
+                                            element.upperCorner(),
+                                            patchIndex);
             // Add the contributions from the SUPG-stabilization.
             localMat.noalias() += supgParam * supgMat;
         }
@@ -268,7 +307,8 @@ public:
 
     /// Returns the parameter required for SUPG
     T getSUPGParameter( const gsVector<T> & lo,
-                        const gsVector<T> & up)
+                        const gsVector<T> & up,
+                        const size_t patchIndex)
     {
         const index_t N = 2;
 
@@ -281,7 +321,12 @@ public:
         // ...get the points map it to the physical space...
         gsMatrix<T> phys_pts = md.values[0];
         // ...evaluate the convection coefficient there, ...
-        coeff_b_ptr->eval_into( phys_pts, b_at_phys_pts );
+        if (using_bSet) {
+            coeff_bSet_ptr->function(patchIndex).eval_into(md.points, b_at_phys_pts);
+        } else {
+            coeff_b_ptr->eval_into( phys_pts, b_at_phys_pts );
+        }
+
         // ...and get it's norm.
         T b_norm = 0;
         for( index_t i=0; i < d; i++)
@@ -381,6 +426,7 @@ protected:
     // PDE Coefficient
     const gsFunction<T> * coeff_A_ptr;
     const gsFunction<T> * coeff_b_ptr;
+    const gsFunctionSet<T> * coeff_bSet_ptr;
     const gsFunction<T> * coeff_c_ptr;
     // flag for stabilization method
     stabilizerCDR::method flagStabType;
@@ -407,6 +453,8 @@ protected:
 
     const gsGeometry<T> * base;
     gsMapData<T> md;
+    // Determine whether to use convection term as gsFunctionSet or gsFunction
+    bool using_bSet;
 };
 
 

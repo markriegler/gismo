@@ -57,7 +57,8 @@ public:
     inline void evaluate(const gsBasis<T>       & basis, // to do: more unknowns
                          const gsGeometry<T>    & geo,
                          // todo: add element here for efficiency
-                         gsMatrix<T>            & quNodes)
+                         gsMatrix<T>            & quNodes,
+                         const size_t           patchIndex)
     {
         md.points = quNodes;
         // Compute the active basis functions
@@ -76,8 +77,9 @@ public:
     }
 
     /// Assemble on element
-    inline void assemble(gsDomainIteratorWrapper<T>    & ,
-                         gsVector<T> const      & quWeights)
+    inline void assemble(gsDomainIterator<T>    & ,
+                         gsVector<T> const      & quWeights,
+                         const size_t           patchIndex)
     {
         localMat.noalias() =
             basisData * quWeights.asDiagonal() *

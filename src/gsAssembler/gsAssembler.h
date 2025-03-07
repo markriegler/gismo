@@ -715,10 +715,10 @@ void gsAssembler<T>::apply(ElementVisitor & visitor,
         quRule.mapTo( domIt.lowerCorner(), domIt.upperCorner(), quNodes, quWeights );
 
         // Perform required evaluations on the quadrature nodes
-        visitor_.evaluate(bases, patch, quNodes);
+        visitor_.evaluate(bases, patch, quNodes, patchIndex);
 
         // Assemble on element
-        visitor_.assemble(domIt, quWeights);
+        visitor_.assemble(*domIt, quWeights, patchIndex);
 
         // Push to global matrix and right-hand side vector
 #pragma omp critical(localToGlobal)

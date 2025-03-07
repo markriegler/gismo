@@ -84,7 +84,8 @@ public:
     inline void evaluate(const gsBasis<T>       & basis, // to do: more unknowns
                          const gsGeometry<T>    & geo,
                          // todo: add element here for efficiency
-                         const gsMatrix<T>      & quNodes)
+                         const gsMatrix<T>      & quNodes,
+                         const size_t           patchIndex)
     {
         md.points = quNodes;
         // Compute the active basis functions
@@ -106,8 +107,9 @@ public:
     }
 
     /// Assemble on element
-    inline void assemble(gsDomainIteratorWrapper<T>    & ,
-                         const gsVector<T>      & quWeights)
+    inline void assemble(gsDomainIterator<T>    & ,
+                         const gsVector<T>      & quWeights,
+                         const size_t           patchIndex)
     {
         for (index_t k = 0; k < quWeights.rows(); ++k) // loop over quadrature nodes
         {
