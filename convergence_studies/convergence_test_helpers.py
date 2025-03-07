@@ -26,6 +26,7 @@ def plot_convergence_results(
     velocity_orders,
     vel_errors_list,
     pressure_errors_list,
+    npz_outfile,
     ignore_pressure_error
 ):
     col_length = 6
@@ -39,6 +40,9 @@ def plot_convergence_results(
     ]
     if ignore_pressure_error:
         ylabels.pop(1)
+        
+    if npz_outfile is not None:
+        np.savez(npz_outfile, velocity=vel_errors_list, pressure=pressure_errors_list)
     
     fig,axes = plt.subplots(ncols=ncols, figsize=(ncols*col_length,4))
     if ncols == 1:
@@ -57,6 +61,11 @@ def plot_convergence_results(
         
         for axis,graph_value,label in zip(axes, graph_values, labels):
             axis.loglog(element_sizes, graph_value, "^-", label=label)
+            
+        # Convergence rate calculation
+        velocity_convergences = np.diff(np.log10(vel_errors)) / np.diff(np.log10(element_sizes))
+        pressure_convergences = np.diff(np.log10(pressure_errors)) / np.diff(np.log10(element_sizes))
+        print(f"Median convergence rate (vel. order {velocity_order}):\n\tVelocity: {np.median(velocity_convergences):.2f}\n\tPressure: {np.median(pressure_convergences):.2f}")
         
     for axis,ylabel in zip(axes, ylabels):
         axis.set_xlabel(xlabel)
@@ -65,11 +74,11 @@ def plot_convergence_results(
         
     plt.legend()
     plt.title(plottitle)
-    plt.axis("equal")
+    # plt.axis("equal")
     plt.tight_layout()
     plt.show()
     
-def run_convergence_study(executable_command_func, xml_file, n_refinements, p_refinements=[0,1,2,3]):
+def run_convergence_study(executable_command_func, xml_file, n_refinements, p_refinements=[0,1,2,3], npz_outfile="errors"):
     """
     Runs a convergence study with a given executable of a (fluid) simulation. Plots the
     results in a loglog-plot
@@ -125,5 +134,6 @@ def run_convergence_study(executable_command_func, xml_file, n_refinements, p_re
         velocity_orders,
         all_vel_errors_list,
         all_p_errors_list,
+        npz_outfile,
         ignore_pressure_error=False
     )

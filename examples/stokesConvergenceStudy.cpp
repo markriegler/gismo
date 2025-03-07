@@ -61,17 +61,11 @@ int main(int argc, char* argv[]) {
   cmd.addSwitch("output-lhs-rhs",
                 "Output system matrix and rhs vector in command line",
                 output_lhs_rhs);
-  bool zero_pressure = false;
-  cmd.addSwitch("zero-pressure",
-                "Set integral of pressure over domain to zero and disable pressure BCs",
-                zero_pressure);
-  bool fix_pressure_at_se_corner = false;
-  cmd.addSwitch("pressure-se-corner",
-                "Fix pressure at southeast corner of patch 0 to 0",
-                fix_pressure_at_se_corner
-  );
-  // cmd.addInt("q", "sample-rate", "Sample rate of splines for export",
-  //            sample_rate);
+
+  bool use_stabilization{false}, use_pspg{false}, use_gls{false}, equal_order_interpolation{false};
+  cmd.addSwitch("pspg", "Using PSPG stabilization", use_pspg);
+  cmd.addSwitch("gls", "Use GLS stabilization", use_gls);
+  cmd.addSwitch("equal-order", "Use equal order bases for velocity and pressure", equal_order_interpolation);
 
   // Material constants
   real_t viscosity{1};
@@ -83,7 +77,7 @@ int main(int argc, char* argv[]) {
   cmd.addInt("p", "pref", "Number of p-refinements", pRef);
 
 
-  std::string fn("../../filedata/stokesConvergenceStudy/square.xml");
+  std::string fn("/Users/markriegler/Documents/ttrrial/gismo-stabilization/gismo/convergence_studies/moeller.xml");
   cmd.addString("f", "file", "Input XML file", fn);
 
   // A few more mesh options
@@ -109,9 +103,7 @@ int main(int argc, char* argv[]) {
     return rv;
   }
 
-  if (zero_pressure && fix_pressure_at_se_corner) {
-    GISMO_ERROR("Cannot have both zero pressure integral and fixing pressure at corner. Choose either one of those options or none.");
-  }
+  use_stabilization = use_pspg or use_gls;
 
   // Import mesh and load relevant information
   gsFileData<> fd(fn);
@@ -150,9 +142,17 @@ int main(int argc, char* argv[]) {
   function_basis_pressure.setDegree( 
       function_basis_pressure.maxCwiseDegree() + pRef
   );
-  function_basis_velocity.setDegree( 
+  // Equal order interpolation should only used when there is stabilization available
+  if (use_stabilization and equal_order_interpolation) {
+    function_basis_velocity.setDegree( 
+        function_basis_velocity.maxCwiseDegree() + pRef
+    );
+  } else {
+    function_basis_velocity.setDegree( 
       function_basis_velocity.maxCwiseDegree() + pRef + 1
   );
+  }
+  
 
   // h-refine each basis (for performing the analysis)
   for (int r=0; r<hRef; ++r) {
@@ -230,35 +230,36 @@ int main(int argc, char* argv[]) {
   // gismo::dirichlet::values const &l2Projection = gismo::dirichlet::l2Projection;
 
   // Intitalize multi-patch interfaces for pressure field
-  if (!zero_pressure) {
-    if (fix_pressure_at_se_corner) {
+  // if (!zero_pressure) {
+  //   if (fix_pressure_at_se_corner) {
       gsInfo << "Ignoring pressure BCs from file. Instead setting the pressure at the southeast corner of patch 0 to 0.\n";
       gismo::gsConstantFunction<> const zero(0.0, domain_patches.targetDim());
       pressure_bcs.addCondition(0, boundary::southeast, condition_type::dirichlet, zero, PRESSURE_ID);
       pressure_bcs.setGeoMap(domain_patches);
-      pressure_trial_space.setup(pressure_bcs, dirichlet::l2Projection, 0);
-    } else {
-      // Else apply presure BCs from xml file
-      fd.getId(p_bc_id, pressure_bcs);
-      pressure_bcs.setGeoMap(domain_patches);
-      pressure_trial_space.setup(pressure_bcs, Aopt.getInt("DirichletValues"), 0);
-    }
-  }
+      // pressure_trial_space.setup(pressure_bcs, dirichlet::l2Projection, 0);
+  //   } else {
+  //     // Else apply presure BCs from xml file
+  //     fd.getId(p_bc_id, pressure_bcs);
+  //     pressure_bcs.setGeoMap(domain_patches);
+  //     pressure_trial_space.setup(pressure_bcs, Aopt.getInt("DirichletValues"), 0);
+  //   }
+  // }
+  gsBoundaryConditions<> yolo_bcs;
+  fd.getId(p_bc_id, yolo_bcs);
+  yolo_bcs.setGeoMap(domain_patches);
+  pressure_trial_space.setup(pressure_bcs, dirichlet::l2Projection, 0);
+
+  // pressure_trial_space.setup(pressure_bcs, dirichlet::l2Projection, 0);
   gsInfo << "Pressure boundary conditions:\n" << pressure_bcs << std::endl;
+  gsInfo << "Yolo boundary conditions:\n" << yolo_bcs << '\n';
   // Initialize interfaces and Dirichlet bcs for velocity field
   velocity_trial_space.setup(velocity_bcs, Aopt.getInt("DirichletValues"), 0);
-  // pressure_trial_space.setup(pressure_bcs, l2Projection, 0);
-  // velocity_trial_space.setup(velocity_bcs, l2Projection, 0);
 
   // Initialize the system
   expr_assembler.initSystem();
   setup_time += timer.stop();
 
   gsInfo << expr_assembler.numDofs();
-  // gsInfo << "Number of degrees of freedom : " << expr_assembler.numDofs()
-  //       << std::endl;
-  // gsInfo << "Number of blocks in the system matrix : "
-  //       << expr_assembler.numBlocks() << std::endl;
 
   //////////////
   // Assembly //
@@ -281,15 +282,36 @@ int main(int argc, char* argv[]) {
   // auto ext_force = (velocity_trial_space % body_force.tr()) * meas(geoMap);
   // auto ext_force1 = body_force.cwisetr()[0] * velocity_trial_space[0].tr() * meas(geoMap);
   // auto ext_force2 = body_force.cwisetr()[1] * velocity_trial_space[1].tr() * meas(geoMap);
-  auto ext_force1 = velocity_trial_space[0] * body_force.cwisetr()[0].tr() * meas(geoMap);
-  auto ext_force2 = velocity_trial_space[1] * body_force.cwisetr()[1].tr() * meas(geoMap);
+  // auto ext_force1 = velocity_trial_space[0] * body_force.cwisetr()[0].tr() * meas(geoMap);
+  // auto ext_force2 = velocity_trial_space[1] * body_force.cwisetr()[1].tr() * meas(geoMap);
 
-  auto zero_integral_pressure = pressure_trial_space * pressure_trial_space.tr() * meas(geoMap);
+  // expr_assembler.assemble(bilin_conti, bilin_press, bilin_mu_1, bilin_mu_2, ext_force1, ext_force2);
+  
+  auto ext_force = velocity_trial_space * body_force * meas(geoMap);
+  expr_assembler.assemble(bilin_conti, bilin_press, bilin_mu_1, bilin_mu_2, ext_force);
 
-  if (!zero_pressure) {
-    expr_assembler.assemble(bilin_conti, bilin_press, bilin_mu_1, bilin_mu_2, ext_force1, ext_force2);
-  } else {
-    expr_assembler.assemble(bilin_conti, bilin_press, bilin_mu_1, bilin_mu_2, ext_force1, ext_force2, zero_integral_pressure);
+  if (use_stabilization) {
+    // Create 1,0 or 0,1 matrix to filter out the corresponding velocity component
+    gsMatrix<> unit_x{1,2}, unit_y{1,2};
+    unit_x << 1.0, 0.0;
+    unit_y << 0.0, 1.0;
+    if (use_pspg) {
+      // Use the following residual formulation: μΔv - ∇p + f = 0
+      auto const &element_volume = expression_evaluator.getElement().area(geoMap);
+      auto const &stabilization_parameter = element_volume / (6.0 * M_PI * viscosity);  // for 2D
+      // auto const &stabilization_parameter = pow(6*element_volume / math::pi, 2.0/3.0) / (6.0 * viscosity);  // for 3D
+      auto pressure_grad = ijac(pressure_trial_space, geoMap);
+      auto pq_term = -1.0 * stabilization_parameter * pressure_grad * pressure_grad.tr() * meas(geoMap);
+      // auto vx = expr::mat(unit_x) * velocity_trial_space;
+      // auto vy = expr::mat(unit_y) * velocity_trial_space;
+      // auto vx_lapl = ilapl(vx, geoMap);
+      // auto vy_lapl = ilapl(vy, geoMap);
+      auto vel_lapl = ilapl(velocity_trial_space, geoMap);
+      auto vel_lapl_q_term = stabilization_parameter * vel_lapl * pressure_grad.tr() * meas(geoMap);
+      auto force_q_term = stabilization_parameter * body_force * pressure_grad.tr() * meas(geoMap);
+      
+      expr_assembler.assemble(pq_term, vel_lapl_q_term, force_q_term);
+    }
   }
 
   assembly_time_ls += timer.stop();
@@ -306,22 +328,12 @@ int main(int argc, char* argv[]) {
   const auto& rhs_vector = expr_assembler.rhs();
 
   // Initialize linear solver
-  solver.compute(system_matrix);
+  // solver.compute(system_matrix);
+  solver.analyzePattern(system_matrix);
+  solver.factorize(system_matrix);
+  gsInfo << "Before solve\n";
   full_solution = solver.solve(rhs_vector);
-
-  // solver_iterative.setTolerance(1e-100);
-  // solver_iterative.setMaxIterations(1000);
-  // solver_iterative.compute(system_matrix);
-  // // full_solution = solver_iterative.solveWithGuess(rhs_vector, full_solution);
-  // full_solution = solver_iterative.solve(rhs_vector);
-  // gsInfo << "----------------------------------------------\n";
-  // gsInfo << "Iterative error: " << solver_iterative.error() << '\n';
-  // gsInfo << "Iterations: " << solver_iterative.iterations() << '\n';
-  // // gsInfo << "Tolerance: " << solver_iterative.tolerance() << '\n';
-
-  // gsMatrix<> iterative_error_history;
-  // solver_iterative.initIteration(rhs_vector, full_solution);
-  // solver_iterative.solveDetailed(rhs_vector, full_solution, iterative_error_history);
+  gsInfo << "After solve\n";
 
   solving_time_ls += timer.stop();
   gsInfo << "." << std::flush;

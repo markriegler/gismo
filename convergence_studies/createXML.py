@@ -11,13 +11,16 @@ P_BC_ID = 2
 BODY_FORCE_ID = 100
 VEL_ANALYTICAL_ID = 101
 P_ANALYTICAL_ID = 102
-PRESSURE_ID = 0
-VELOCITY_ID = 1
+PRESSURE_ID = 1
+VELOCITY_ID = 0
 
 def get_case_dict(casename):
     with open(CASES_FILE, "r") as f:
         studies_dict = json.load(f)
     return studies_dict[casename]
+
+def bottom_identifier(points):
+    return points[:,1] < 1e-8
 
 def create_xml(casename, outdir):
     case_dict = get_case_dict(casename)
@@ -49,17 +52,21 @@ def create_xml(casename, outdir):
         block_id=VEL_BC_ID,
         dim=geometry.dim,
         function_list=vel_bcs,
-        bc_list=[("BID1", "Dirichlet", 0)],
+        bc_list=[("BID1", "Dirichlet", 0), ("BID2", "Dirichlet", 0)],
         unknown_id=VELOCITY_ID,
         comment=" Velocity boundary conditions "
     )
     
     # For pressure boundary conditions just apply corner value
+    if "p_se_corner" in case_dict.keys():
+        p_se_corner_value = case_dict["p_se_corner"]
+    else:
+        p_se_corner_value = 0.0
     additional_blocks.add_boundary_conditions(
         block_id=P_BC_ID,
         dim=geometry.dim,
         cv_list=[
-            (PRESSURE_ID, 0, 1, 0.0)
+            (PRESSURE_ID, 0, 1, p_se_corner_value)
         ],
         unknown_id=PRESSURE_ID,
         comment=" Pressure boundary conditions "
@@ -87,6 +94,8 @@ def create_xml(casename, outdir):
     )
     
     geometry = sp.Multipatch(splines=[geometry])
+    if geometry_type == "box2D":
+        geometry.boundary_from_function(function=bottom_identifier, boundary_id=2)
     
     export(
         fname=outname,
