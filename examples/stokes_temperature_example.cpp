@@ -158,8 +158,7 @@ template<class T>
 void solveHeatProblem(gsMultiPatch<T> patches, gsField<T> velocityField, index_t dim,
                       gsBoundaryConditions<T> temperatureBcInfo, int numRefine,
                       int numElevate) {
-  const gsFunctionSet<>& velocityFunction = velocityField.fields();str.push_back("0.0");
-  // }
+  const gsFunctionSet<>& velocityFunction = velocityField.fields();
   // gsFunctionExpr<> coeff_diffusion(diff_coeff_str, dim);
   gsFunctionExpr<> coeff_diffusion("0.0","0","0","0.0",2);
   // Reaction term

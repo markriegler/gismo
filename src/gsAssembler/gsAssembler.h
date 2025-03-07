@@ -718,7 +718,7 @@ void gsAssembler<T>::apply(ElementVisitor & visitor,
         visitor_.evaluate(bases, patch, quNodes, patchIndex);
 
         // Assemble on element
-        visitor_.assemble(*domIt, quWeights, patchIndex);
+        visitor_.assemble(*domIt.get(), quWeights, patchIndex);
 
         // Push to global matrix and right-hand side vector
 #pragma omp critical(localToGlobal)
