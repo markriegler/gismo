@@ -27,6 +27,7 @@ struct stabilizerCDR
 {
     enum method
     {
+        GLS = 2,
         SUPG = 1, ///< Use SUPG
         none = 0  ///< Do not use a stabilizer
     };
@@ -69,8 +70,9 @@ public:
 
         // 0: no stabilization
         // 1: SUPG
+        // 2: GLS
         m_options = defaultOptions();
-        m_options.addInt("Stabilization", "Choice of stabilization method; 0 := no; 1 := SUPG;", flagStabilization);
+        m_options.addInt("Stabilization", "Choice of stabilization method; 0 := no; 1 := SUPG; 2 := GLS;", flagStabilization);
         Base::initialize(pde, bases, m_options);
     }
 
@@ -93,7 +95,8 @@ public:
 
         // 0: no stabilization
         // 1: SUPG
-        m_options.addInt("Stabilization", "Choice of stabilization method; 0 := no; 1 := SUPG;", flagStabilization);
+        // 2: GLS
+        m_options.addInt("Stabilization", "Choice of stabilization method; 0 := no; 1 := SUPG; 2:= GLS;", flagStabilization);
 
         Base::initialize(pde, bases, m_options);
     }
@@ -127,7 +130,8 @@ public:
 
         // 0: no stabilization
         // 1: SUPG
-        m_options.addInt("Stabilization", "Choice of stabilization method; 0 := no; 1 := SUPG;", flagStabilization);
+        // 2: GLS
+        m_options.addInt("Stabilization", "Choice of stabilization method; 0 := no; 1 := SUPG; 2:= GLS;", flagStabilization);
 
         typename gsPde<T>::Ptr pde(new gsConvDiffRePde<T>
                                        (patches, bconditions, &coeff_A, &coeff_b, &coeff_c, &rhs));

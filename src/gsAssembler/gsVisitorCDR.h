@@ -90,7 +90,7 @@ public:
         flagStabType( flagStabilization )
     {
         GISMO_ASSERT( rhs.targetDim() == 1 ,"Not yet tested for multiple right-hand-sides");
-        GISMO_ASSERT( flagStabilization == stabilizerCDR::none || flagStabilization == stabilizerCDR::SUPG, "flagStabilization not known");
+        GISMO_ASSERT( flagStabilization == stabilizerCDR::none || flagStabilization == stabilizerCDR::SUPG || flagStabilization == stabilizerCDR::GLS, "flagStabilization not known");
         using_bSet = false;
     }
 
@@ -105,7 +105,7 @@ public:
     flagStabType( flagStabilization )
     {
         GISMO_ASSERT( rhs.targetDim() == 1 ,"Not yet tested for multiple right-hand-sides");
-        GISMO_ASSERT( flagStabilization == stabilizerCDR::none || flagStabilization == stabilizerCDR::SUPG, "flagStabilization not known");
+        GISMO_ASSERT( flagStabilization == stabilizerCDR::none || flagStabilization == stabilizerCDR::SUPG || flagStabilization == stabilizerCDR::GLS, "flagStabilization not known");
         using_bSet = true;
     }
 
@@ -192,8 +192,9 @@ public:
         // SUPG-stabilization is used or not, because the SUPG-parameter
         // has to be computed AFTER the loop over the quadrature points
         // (see below).
-        gsMatrix<T> supgMat( localMat.rows(), localMat.cols() );
+        gsMatrix<T> supgMat( localMat.rows(), localMat.cols() ), glsMat( localMat.rows(), localMat.cols() );
         supgMat.setZero();
+        glsMat.setZero();
 
         for (index_t k = 0; k < quWeights.rows(); ++k) // loop over quadrature nodes
         {
@@ -280,6 +281,10 @@ public:
                 supgMat.noalias() += weight * coeff_c_vals(0,k) * ( b_basisGrads.transpose() * basisVals.col(k).transpose());
 
             }
+            if (flagStabType == stabilizerCDR::GLS) // 2: GLS
+            {
+
+            }
         }
 
         if( flagStabType == stabilizerCDR::SUPG ) // 1: SUPG
@@ -292,6 +297,14 @@ public:
             // Add the contributions from the SUPG-stabilization.
             localMat.noalias() += supgParam * supgMat;
         }
+
+        // TODO if (flagStabType == stabilizerCDR::GLS) // 2: GLS
+        // {
+        //     T glsParam = getGLSParameter( element.lowerCorner(),
+        //                                     element.upperCorner(),
+        //                                     patchIndex);
+        //     localMat.noalias() += glsParam * glsMat;
+        // }
     }
 
     inline void localToGlobal(const index_t                     patchIndex,
@@ -333,87 +346,118 @@ public:
             b_norm += b_at_phys_pts(i,0) * b_at_phys_pts(i,0);
         b_norm = math::sqrt( b_norm );
 
-        T SUPG_param = (T)(0.0);
-        if( b_norm > 0 )
-        {
-            gsMatrix<T> aMat;
+        gsMatrix<T> jacobian = md.values[1];
+        gsMatrix<T> phys_gradient;
+        std::vector<index_t> grad_indices;
 
-            if( d == 2 )
-            {
-                index_t N1 = N+1;
-                md.points.resize( 2, 4*N1 );
-                aMat.resize( 2, 4*N1 );
-
-                for( index_t i = 0; i <= N; ++i )
-                {
-                    T a = (T)(i)/(T)(N);
-                    aMat(0,i) = a;
-                    aMat(1,i) = (T)(0.0);
-                    aMat(0,i+N1) = a;
-                    aMat(1,i+N1) = (T)(1.0);
-
-                    aMat(0,i+2*N1) = (T)(0.0);
-                    aMat(1,i+2*N1) = a;
-                    aMat(0,i+3*N1) = (T)(1.0);
-                    aMat(1,i+3*N1) = a;
-                }
-            }
-            else if( d == 3 )
-            {
-
-                GISMO_ASSERT(false,"NOT IMLEMENTED YET, Mark m271");
-
-                /*
-                md.points.resize( 3, 6*(N+1)*(N+1) );
-                aMat.resize( 3, 6*(N+1)*(N+1) );
-
-                index_t N1 = N+1;
-                md.points.resize( 2, 4*N1 );
-                aMat.resize( 2, 4*N1 );
-
-                index_t ij = 0;
-                for( index_t i = 0; i <= N; ++i )
-                    for( index_t j = 0; j <= N; ++j )
-                    {
-                        T ai = (T)(i)/(T)(N);
-                        T aj = (T)(j)/(T)(N);
-                        aMat(0,ij) = (T)(0.0);
-                        aMat(1,ij) = (T)(0.0);
-                        aMat(2,ij) = (T)(0.0);
-                        aMat(0,ij+N1) = (T)(1.0);
-                        aMat(1,ij+N1) = (T)(1.0);
-                        aMat(1,ij+N1) = (T)(1.0);
-
-                    }
-                */
-
-            }
-            else
-            {
-                GISMO_ASSERT(false,"WRONG DIMENSION. Mark m243");
-            }
-
-
-            for( index_t di = 0; di < d; ++di )
-                for( index_t i = 0; i < aMat.cols(); ++i)
-                {
-                    md.points(di,i) = ( (T)(1) - aMat(di,i) )*lo[di] + aMat(di,i) * up[di];
-                }
-
-            base->computeMap(md);
-            gsMatrix<T> b_proj = md.values[0].transpose() * b_at_phys_pts;
-
-            T b_proj_min = b_proj(0,0);
-            T b_proj_max = b_proj(0,0);
-            for( index_t i = 0; i < b_proj.size(); i++)
-            {
-                if( b_proj_min > b_proj(i) )
-                    b_proj_min = b_proj(i);
-                if( b_proj_max < b_proj(i) )
-                    b_proj_max = b_proj(i);
-            }
-            SUPG_param = ( b_proj_max - b_proj_min ) / ( (T)(2) * b_norm );
+        T advection_contribution = 0.0;
+        if (d == 2) {
+            grad_indices = {0, 3};
+        } else if (d == 3) {
+            grad_indices = {0, 4, 8};
+        } else {
+            GISMO_ASSERT(false, "WRONG DIMENSION.");
         }
+
+        jacobian.submatrixRows(grad_indices, phys_gradient);
+
+        for (index_t i = 0; i < phys_gradient.size(); i++)  {
+            advection_contribution += math::abs(b_at_phys_pts(i) * phys_gradient(i));
+        }
+
+        T SUPG_param = (T)(0.0);
+
+        SUPG_param = 1 / advection_contribution;
+        // if( b_norm > 0 )
+        // {
+        //     gsMatrix<T> aMat;
+
+        //     if( d == 2 )
+        //     {
+        //         index_t N1 = N+1;
+        //         md.points.resize( 2, 4*N1 );
+        //         aMat.resize( 2, 4*N1 );
+
+        //         for( index_t i = 0; i <= N; ++i )
+        //         {
+        //             T a = (T)(i)/(T)(N);
+        //             aMat(0,i) = a;
+        //             aMat(1,i) = (T)(0.0);
+        //             aMat(0,i+N1) = a;
+        //             aMat(1,i+N1) = (T)(1.0);
+
+        //             aMat(0,i+2*N1) = (T)(0.0);
+        //             aMat(1,i+2*N1) = a;
+        //             aMat(0,i+3*N1) = (T)(1.0);
+        //             aMat(1,i+3*N1) = a;
+        //         }
+        //     }
+        //     else if( d == 3 )
+        //     {
+
+        //         GISMO_ASSERT(false,"NOT IMLEMENTED YET, Mark m271");
+
+        //         /*
+        //         md.points.resize( 3, 6*(N+1)*(N+1) );
+        //         aMat.resize( 3, 6*(N+1)*(N+1) );
+
+        //         index_t N1 = N+1;
+        //         md.points.resize( 2, 4*N1 );
+        //         aMat.resize( 2, 4*N1 );
+
+        //         index_t ij = 0;
+        //         for( index_t i = 0; i <= N; ++i )
+        //             for( index_t j = 0; j <= N; ++j )
+        //             {
+        //                 T ai = (T)(i)/(T)(N);
+        //                 T aj = (T)(j)/(T)(N);
+        //                 aMat(0,ij) = (T)(0.0);
+        //                 aMat(1,ij) = (T)(0.0);
+        //                 aMat(2,ij) = (T)(0.0);
+        //                 aMat(0,ij+N1) = (T)(1.0);
+        //                 aMat(1,ij+N1) = (T)(1.0);
+        //                 aMat(1,ij+N1) = (T)(1.0);
+
+        //             }
+        //         */
+
+        //     }
+        //     else
+        //     {
+        //         GISMO_ASSERT(false,"WRONG DIMENSION. Mark m243");
+        //     }
+
+
+        //     for( index_t di = 0; di < d; ++di )
+        //         for( index_t i = 0; i < aMat.cols(); ++i)
+        //         {
+        //             md.points(di,i) = ( (T)(1) - aMat(di,i) )*lo[di] + aMat(di,i) * up[di];
+        //         }
+
+        //     base->computeMap(md);
+        //     gsMatrix<T> b_proj = md.values[0].transpose() * b_at_phys_pts;
+
+        //     // gsInfo << "The md.values of dimensions " << md.values[0].rows() << " x " << md.values[0].cols()
+        //     //         << ", and the values are:\n" << md.values[0] << '\n';
+        //     // gsInfo << "The b at phys pts are of dimension: " << b_at_phys_pts.rows() << " x " << b_at_phys_pts.cols() << '\n';
+
+        //     // gsInfo << "The b_proj matrix has the following dimensions: " << b_proj.rows() << " x " << b_proj.cols() << '\n';
+
+        //     T b_proj_min = b_proj(0,0);
+        //     T b_proj_max = b_proj(0,0);
+        //     for( index_t i = 0; i < b_proj.size(); i++)
+        //     {
+        //         if( b_proj_min > b_proj(i) )
+        //             b_proj_min = b_proj(i);
+        //         if( b_proj_max < b_proj(i) )
+        //             b_proj_max = b_proj(i);
+        //     }
+        //     SUPG_param = ( b_proj_max - b_proj_min ) / ( (T)(2) * b_norm );
+
+        //     // From here on out I will just overwrite the SUPG parameter with Hans's
+        //     // document for the stabilization parameter
+        //     // Right now it only deals with the advection, nothing else
+        // }
 
         return SUPG_param;
     }

@@ -198,14 +198,14 @@ gsSparseMatrix<T> gsBasis<T>::collocationMatrix(const gsMatrix<T> & u) const
     nact.setOnes(this->size());
     gsMatrix<index_t> tmp;
 
-#   pragma omp parallel for default(shared) private(tmp) //firstprivate(nact)
+// #   pragma omp parallel for default(shared) private(tmp) //firstprivate(nact)
     for (index_t k=0; k<u.cols(); k++)
     {
         active_into(u.col(k), tmp);
         for (index_t t = 0; t<tmp.size(); t++)
         {
 //#       pragma omp critical (collocation_nact)
-#         pragma omp atomic
+// #         pragma omp atomic
           nact[tmp(t,0)] += 1;//tmp.rows();
         }
         // nact[k] = tmp.rows();
@@ -217,7 +217,7 @@ gsSparseMatrix<T> gsBasis<T>::collocationMatrix(const gsMatrix<T> & u) const
     gsMatrix<index_t> act;
     std::vector<gsEigen::Triplet<T,index_t>> alltriplets;
     alltriplets.reserve(nact.sum());
-#   pragma omp parallel for default(shared) private(ev, act)
+// #   pragma omp parallel for default(shared) private(ev, act)
     for (index_t k=0; k<u.cols(); k++)
     {
         eval_into  (u.col(k), ev );
@@ -226,7 +226,7 @@ gsSparseMatrix<T> gsBasis<T>::collocationMatrix(const gsMatrix<T> & u) const
         for (index_t i=0; i!=act.rows(); ++i)
             tripletList[i] = gsEigen::Triplet<T,index_t>(k,act.at(i),ev.at(i));
 
-#       pragma omp critical (collocation)
+// #       pragma omp critical (collocation)
         alltriplets.insert(alltriplets.end(), tripletList.begin(), tripletList.end());
     }
 

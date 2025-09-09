@@ -674,21 +674,21 @@ void gsAssembler<T>::apply(ElementVisitor & visitor,
 
     const gsBasisRefs<T> bases(m_bases, patchIndex);
 
-#pragma omp parallel
-{
+// #pragma omp parallel
+// {
     gsQuadRule<T> quRule ; // Quadrature rule
     gsMatrix<T> quNodes  ; // Temp variable for mapped nodes
     gsVector<T> quWeights; // Temp variable for mapped weights
 
     ElementVisitor
-#ifdef _OPENMP
-    // Create thread-private visitor
-    visitor_(visitor);
-    const int tid = omp_get_thread_num();
-    const int nt  = omp_get_num_threads();
-#else
+// #ifdef _OPENMP
+//     // Create thread-private visitor
+//     visitor_(visitor);
+//     const int tid = omp_get_thread_num();
+//     const int nt  = omp_get_num_threads();
+// #else
     &visitor_ = visitor;
-#endif
+// #endif
 
     // Initialize reference quadrature rule and visitor data
     visitor_.initialize(bases, patchIndex, m_options, quRule);
@@ -704,12 +704,12 @@ void gsAssembler<T>::apply(ElementVisitor & visitor,
                                                  bases[0].domain()->endBdr(side)) ;
 
     // Start iteration over elements
-#ifdef _OPENMP
-    domIt += tid;
-    for (; domIt < domItEnd; domIt+=(nt) )
-#else
+// #ifdef _OPENMP
+//     domIt += tid;
+//     for (; domIt < domItEnd; domIt+=(nt) )
+// #else
     for (; domIt < domItEnd; ++domIt )
-#endif
+// #endif
     {
         // Map the Quadrature rule to the element
         quRule.mapTo( domIt.lowerCorner(), domIt.upperCorner(), quNodes, quWeights );
@@ -721,10 +721,10 @@ void gsAssembler<T>::apply(ElementVisitor & visitor,
         visitor_.assemble(*domIt.get(), quWeights, patchIndex);
 
         // Push to global matrix and right-hand side vector
-#pragma omp critical(localToGlobal)
+// #pragma omp critical(localToGlobal)
         visitor_.localToGlobal(patchIndex, m_ddof, m_system); // omp_locks inside
     }
-}//omp parallel
+// }//omp parallel
 
 }
 
