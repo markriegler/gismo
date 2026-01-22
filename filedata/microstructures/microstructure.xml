@@ -1602,7 +1602,8 @@
     <Function type="FunctionExpr" dim="2" index="4">-1749.248*y^4 + 3498.496*y^3 - 2188.192*y^2 + 438.944*y + 220</Function> <!-- Jana's ring temperature profile -->
     <!-- Concentration profiles -->
     <Function type="FunctionExpr" dim="2" index="5">43.7248*y^4 - 87.4496*y^3 + 54.6944*y^2 - 10.9696*y + 1.0</Function> <!-- Jana's ring concentration profile -->
-    <bc name="BID2" type="Dirichlet" unknown="0" function="4" />
+    <Function type="FunctionExpr" dim="2" index="6">if(y >= 0.5, 1, 0)</Function> <!-- 50:50 profile -->
+    <bc name="BID2" type="Dirichlet" unknown="0" function="6" />
     <bc name="BID1" type="Neumann" unknown="0" function="0" />
     <bc name="BID3" type="Neumann" unknown="0" function="0" />
   </boundaryConditions>
